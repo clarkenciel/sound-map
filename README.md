@@ -10,3 +10,12 @@ Components:
 - store.ck: store the results of an analysis
 - compare.ck: compare analysis results
 - map.ck: store comparisons and "positions" of recordings.
+
+Proposed Workflow:
+------------------
+1. User opens app and begins recording
+2. User stops recording. Recording is stored on server.
+3. Recording is analyzed by program and analysis is stored on server.
+4. While app is open, analysis is used, in conjunction with recording, to render sound objects in app.
+
+NB: When the app is opened, the analyses and recordings are used to render any already-existing sound objects
