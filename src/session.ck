@@ -1,5 +1,14 @@
+// session.ck
 // Session controller for app
 // Author: Danny Clarke
+/*
+*   Workflow:
+*   1. Start app, read index files, read object config files
+*   2. Spork of play and movement processes with event listeners for destruction/creation
+*   3. On user inputs, create/destroy/replace objects
+*   4. update config and index files
+*/
+
 public class Session {
     // DIRS
     me.dir(-1) => string mainD;
@@ -56,4 +65,3 @@ public class Session {
 
 // TEST CODE
 Session s;
-s.record();
