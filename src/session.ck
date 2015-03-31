@@ -1,67 +1,43 @@
 // session.ck
-// Session controller for app
+// handle the user interactions with the manager and the "orbital system"
 // Author: Danny Clarke
-/*
-*   Workflow:
-*   1. Start app, read index files, read object config files
-*   2. Spork of play and movement processes with event listeners for destruction/creation
-*   3. On user inputs, create/destroy/replace objects
-*   4. update config and index files
-*/
 
 public class Session {
-    // DIRS
-    me.dir(-1) => string mainD;
-    mainD + "rec/" => string recordings;
-    mainD + "ana/" => string analysis;
-    mainD + "bin/" => string functions;
+    OscIn in;
+    OscMsg msg;
+    Manager man;
+    Orb orbs[];
+    
 
-    // CURRENT STATE
-    float rLast, aLast, rNew, aNew; // ids for last and next recs/anas
-    int rcount, acount;
-
-    FileIO rIndex, aIndex, pIndex; // our indexes
-    rIndex.open( recordings+"index.txt", FileIO.READ );
-    aIndex.open( analysis+"index.txt", FileIO.READ );
-
-    while( !rIndex.eof() ) {
-        rIndex.readLine();
-        rcount ++ ;
+    // load up our manager and start playing existing sounds
+    fun void init() {
+        man.readIndex();
+        man.set_orbs( orbs );
     }
-    while( !aIndex.eof() ) { 
-        aIndex.readLine();
-        acount++;
+
+    fun void start() {
+        man.load_sounds();
+        spork ~ input_listen();
     }
-    rIndex.close(); aIndex.close();
 
-    rcount * 0.00001 => rLast; <<< rLast >>>;
-    acount * 0.00001 => aLast; <<< aLast >>>;
-    rLast => rNew;
-    aLast => aNew;
+    fun void quit() {
+        man.quit();
+        NULL @=> man;
+        NULL @=> in;
+        NULL @=> msg;
+    }
 
-    // FUNCS
     fun void record() {
-        rIndex.open( recordings+"index.txt", FileIO.APPEND );
-        Std.ftoa(rNew, 6) => string id;
-        Machine.add( functions+"record.ck:"+id ) => int rec;
-        rIndex <= id <= IO.nl();
-        rIndex.close();
+        man.create_sound();
     }
-
-    fun void analyze() {
-        aIndex.open( analysis+"index.txt", FileIO.APPEND );
-        Std.ftoa(aNew,6) => string id;
-        Machine.add( functions+"analyze.ck:"+id) => int ana;
-        aIndex <= id <= IO.nl();
-        aIndex.close();
-    }
-
-    fun void findPos() {
-
-
+    
+    // will figure the specifics of this with Wolfgang
+    fun void input_listen() {
+        while( true ) {
+            in => now;
+            while( in.recv( msg ) ) {
+            
+            }
+        }     
     }
 }
-
-
-// TEST CODE
-Session s;
