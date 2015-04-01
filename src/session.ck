@@ -12,13 +12,12 @@ public class Session {
         <<< "initializing and starting session","" >>>;
         man.read_index();
         man.load_sounds();
-        1 => kill;
     }
 
     fun void quit() {
-        <<< "session quitting", "" >>>;
         man.quit();
         NULL @=> man;
+        <<< "session quitting", "" >>>;
         1 => kill;
     }
 
@@ -42,6 +41,10 @@ public class Session {
                     record();
                 if( msg.address == "/quit" )
                     quit();
+                if( msg.address == "/delete" )
+                    man.delete_sound( msg.getInt(0) );
+                if( msg.address == "/destroy" )
+                    man.destroy_player( msg.getInt(0) );
             }
         }     
     }

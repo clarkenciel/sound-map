@@ -63,7 +63,7 @@ public class Manager {
     // create sound via recording
     fun void create_sound() {
         string old_fn;
-        if( filenames.size() - 1 > 0 )
+        if( filenames.size() > 0 )
             filenames[ filenames.size() - 1 ] => old_fn;
         else
             "0.000" => old_fn;
@@ -71,6 +71,7 @@ public class Manager {
         make_fn( old_fn ) => string fn;
         rec.record( fn, 3::second ); 
         add_sound( fn, filenames.size() );
+        add_player( fn, filenames.size() );
     }
 
     // create sound via merge, or other non-recording way
@@ -84,7 +85,6 @@ public class Manager {
         } else fn @=> filenames[ idx ]; // "push"
         
         update_index();
-        add_player( fn, idx );
     }
 
     // delete a sound entirely
@@ -179,6 +179,7 @@ public class Manager {
 
     // clean up on quit
     fun void quit() {
+        <<< "manager quitting", "" >>>;
         destroy_all();
         NULL @=> rec;
         NULL @=> index;    

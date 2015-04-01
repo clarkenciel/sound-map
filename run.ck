@@ -2,7 +2,8 @@ me.dir() => string d;
 d + "src/" => string src;
 1 => int run;
 
-Machine.add( src + "class_load" ) => int classes;
+Machine.add( src + "class_load.ck" ) => int classes;
+second => now;
 Machine.add( src + "main.ck" ) => int main;
 
 spork ~ quit_listen();
@@ -18,7 +19,7 @@ fun void quit_listen() {
     while( true ) {
         in => now;
         while( in.recv( msg ) ) {
-            <<< "main.ck quitting","">>>;
+            <<< "run.ck quitting","">>>;
             0 => run;
         }
     }

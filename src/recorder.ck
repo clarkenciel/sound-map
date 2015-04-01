@@ -14,7 +14,7 @@ public class Recorder {
         file.open( fn, FileIO.WRITE );
         
         // set up FFT
-        8 => int WIN => fft.size;
+        4 => int WIN => fft.size;
         length + now => time later;
 
         // record
