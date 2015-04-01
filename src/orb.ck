@@ -9,8 +9,8 @@ public class Orb {
     fun void init( float _x, float _y, float _xv, float _yv ) {
         _x @=> loc[0];
         _y @=> loc[1];
-        _xv @=> loc[0];
-        _xy @=> loc[1]; 
+        _xv @=> vel[0];
+        _yv @=> vel[1]; 
     }
 
     fun void move() {

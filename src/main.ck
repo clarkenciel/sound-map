@@ -5,5 +5,6 @@
 Session s;
 
 s.init();
-s.start();
-while( ms => now );
+spork ~ s.input_listen();
+
+while( true ) ms => now;

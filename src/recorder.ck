@@ -3,27 +3,29 @@
 // Author: Danny Clarke
 
 public class Recorder {
-    adc => FFT fft => dac;
+    adc => FFT fft => blackhole;
     UAnaBlob blob;
     FileIO file;
     
     fun void record( string fn, dur length ) {
+        <<< "Creating sound @:", fn,"">>>;
         // open file
         file.open( fn, FileIO.WRITE );
         
         // set up FFT
         8 => int WIN => fft.size;
-        dur + now => time later;
+        length + now => time later;
 
         // record
         while( now < later ) {
             fft.upchuck() @=> blob;
-            write_sample( file, blobl.cvals() ); 
+            write_sample( file, blob.cvals() ); 
             WIN::samp => now;
         } 
 
+        file.close();
         // clean up
-        destroy()
+        //destroy();
     }
 
     // record an array of complex numbers to a filename, fn
@@ -31,17 +33,14 @@ public class Recorder {
         int samp_size;
 
         for( int i; i < a.size(); i++ ) {
-            for( int j; j < a[i].size(); j++ ) {
-                file <= "[" + a[i].re <= "," + a[i].im <= "]";
-            }
-            file <= "\n";
-            NULL @=> a;
+            file <= "[" + a[i].re <= "," + a[i].im <= "]";
         }
+        file <= "\n";
+        NULL @=> a;
     }
     
     fun void destroy() {
-        fft =< dac;
-        file.close();
+        fft =< blackhole;
         NULL @=> file;
         NULL @=> fft;
         NULL @=> blob;

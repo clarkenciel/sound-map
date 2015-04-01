@@ -3,40 +3,42 @@
 // Author: Danny Clarke
 
 public class Session {
-    OscIn in;
-    OscMsg msg;
     Manager man;
     Orb orbs[];
-    
 
     // load up our manager and start playing existing sounds
     fun void init() {
-        man.readIndex();
-        man.set_orbs( orbs );
-    }
-
-    fun void start() {
+        <<< "initializing and starting session","" >>>;
+        man.read_index();
         man.load_sounds();
-        spork ~ input_listen();
     }
 
     fun void quit() {
+        <<< "session quitting", "" >>>;
         man.quit();
         NULL @=> man;
-        NULL @=> in;
-        NULL @=> msg;
     }
 
     fun void record() {
+        <<< "session recording", "" >>>;
         man.create_sound();
     }
     
     // will figure the specifics of this with Wolfgang
     fun void input_listen() {
+        OscIn in;
+        OscMsg msg;
+        in.port( 57120 );
+        in.listenAll();
+            <<< "session listening","" >>>;
         while( true ) {
             in => now;
             while( in.recv( msg ) ) {
-            
+                <<< msg.address, "received","">>>;
+                if( msg.address == "/record" )
+                    record();
+                if( msg.address == "/quit" )
+                    quit();
             }
         }     
     }

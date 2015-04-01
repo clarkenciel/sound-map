@@ -3,15 +3,15 @@
 // Author: Danny Clarke
 
 public class Manager {
-    me.dir() => string home;
-    home + "/index.txt" => string index_fn;
-    home + "/snds" => string sound_dir;
-    home + "/data" => string data_dir;
-    string filenames[];
+    me.dir(1) => string home;
+    home + "index.txt" => string index_fn;
+    home + "snds/" => string sound_dir;
+    home + "data/" => string data_dir;
+    string filenames[0];
     FileIO index;
-    Sound players[];
+    Sound players[0];
     Recorder rec;
-    float orb_locs[];
+    float orb_locs[0];
 
     // read index file and load
     fun void read_index() {
@@ -19,17 +19,26 @@ public class Manager {
         int comma_idx, start_idx;
         index.open( index_fn, FileIO.READ );
 
-        // parse the file
-        while( index.more() ) {
-            index.readLine() => line;
-            while( start_idx < line.length() ) {
-                line.find( ",", start_idx ) => comma_idx;
-                line.substring( start_idx, comma_idx ) => fn;
-                filenames << fn;
-                comma_idx + 1 => start_idx;
+        if( index.good() ) {
+            // parse the file
+            while( index.more() ) {
+                index.readLine() => line;
+                while( start_idx < line.length() ) {
+                    <<< start_idx, line.length(), "" >>>;
+                    line.find( ",", start_idx ) => comma_idx;
+                    line.substring( start_idx, comma_idx - start_idx ) => fn;
+                    <<< fn,"" >>>;
+                    if( !is_in( fn, filenames ) ) {
+                        filenames << fn;
+                        <<< "initializing sound:",fn,"">>>;
+                    }
+                    comma_idx + 1 => start_idx;
+                }
             }
+            index.close();
+        } else {
+            index.close();
         }
-        players.size( filenames.size() );
     }
     
     // TODO: Need to find way to sustain this
@@ -37,17 +46,25 @@ public class Manager {
     fun void load_sounds() {
         // loop through the filenames array and read
         //  in soun files
+        if( players.size() != filenames.size() )
+            players.size( filenames.size() );
+
         for( int i; i < filenames.size(); i ++ ) {
             players[i].read( filenames[i] );
             spork ~ players[i].play(i);
         }
-        while( ms => now );
     }
 
     // create sound via recording
     fun void create_sound() {
-        make_fn( filenames[filenames.size()-1] ) => string fn;
-        rec.record( fn ); 
+        string old_fn;
+        if( filenames.size() - 1 > 0 )
+            filenames[ filenames.size() - 1 ] => old_fn;
+        else
+            "0.000" => old_fn;
+
+        make_fn( old_fn ) => string fn;
+        rec.record( fn, 3::second ); 
         add_sound( fn, filenames.size() );
     }
 
@@ -56,12 +73,13 @@ public class Manager {
         filenames.size( filenames.size() + 1 );
         if( idx < filenames.size() - 1 ) {
             // insert
-            for( filenames.size() - 1; i > idx; i -- )
+            for( filenames.size() - 1 => int i; i > idx; i -- )
                 filenames[i-1] @=> filenames[i];
             fn @=> filenames[idx];
         } else fn @=> filenames[ idx ]; // "push"
         
         update_index();
+        read_index();
     }
 
     // delete a sound entirely
@@ -87,7 +105,7 @@ public class Manager {
         players[idx].rate => now;
 
         // remove from player array    
-        NULL @=> players[idx].kill;
+        NULL @=> players[idx];
         for( idx => int i; i < players.size() - 1; i++ ) {
             players[i+1] @=> players[i];
         }
@@ -136,9 +154,13 @@ public class Manager {
 
     // TODO: fix this to correctly parse/generate file names
     fun string make_fn( string prv_fn ) {
+        if( prv_fn.length() > 4 ) 
+            prv_fn.substring( prv_fn.length() - 4 ) => prv_fn;
+        <<< "Old filename:", prv_fn, "" >>>;
         prv_fn => Std.atof => float id;
         0.001 +=> id;
-        id => Std.ftoa => string fn;
+        sound_dir + Std.ftoa(id, 3) => string fn;
+        <<< "New filename:", fn,"">>>;
         return fn;
     } 
 
@@ -147,6 +169,7 @@ public class Manager {
         for( int i; i < filenames.size(); i ++ ) {
             index <= filenames[i] + ",";
         }
+        index.close();
     } 
 
     // clean up on quit
@@ -156,4 +179,13 @@ public class Manager {
         NULL @=> index;    
         NULL @=> filenames;
     }
+
+    // check if string is in array
+    fun int is_in( string fn, string fns[] ) {
+        for( int i; i < fns.size(); i ++ ) {
+            if( fn == fns[i] )
+                return 1;
+        }
+        return 0;
+    } 
 }
