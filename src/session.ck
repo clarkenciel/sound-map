@@ -5,18 +5,21 @@
 public class Session {
     Manager man;
     Orb orbs[];
+    int kill;
 
     // load up our manager and start playing existing sounds
     fun void init() {
         <<< "initializing and starting session","" >>>;
         man.read_index();
         man.load_sounds();
+        1 => kill;
     }
 
     fun void quit() {
         <<< "session quitting", "" >>>;
         man.quit();
         NULL @=> man;
+        1 => kill;
     }
 
     fun void record() {

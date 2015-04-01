@@ -24,14 +24,10 @@ public class Manager {
             while( index.more() ) {
                 index.readLine() => line;
                 while( start_idx < line.length() ) {
-                    <<< start_idx, line.length(), "" >>>;
                     line.find( ",", start_idx ) => comma_idx;
                     line.substring( start_idx, comma_idx - start_idx ) => fn;
-                    <<< fn,"" >>>;
-                    if( !is_in( fn, filenames ) ) {
-                        filenames << fn;
-                        <<< "initializing sound:",fn,"">>>;
-                    }
+                    filenames << fn;
+                    <<< "initializing sound:",fn,"">>>;
                     comma_idx + 1 => start_idx;
                 }
             }
@@ -50,9 +46,18 @@ public class Manager {
             players.size( filenames.size() );
 
         for( int i; i < filenames.size(); i ++ ) {
+            <<< "player",i,"reading", filenames[i], "" >>>;
+            new Sound @=> players[i];
             players[i].read( filenames[i] );
-            spork ~ players[i].play(i);
+            spork ~ players[i].play(0);
         }
+    }
+
+    fun void add_player( string fn, int chan ) {
+        players.size( players.size() + 1 );
+        new Sound @=> players[ players.size() - 1 ];
+        players[ players.size() - 1 ].read( fn );
+        spork ~ players[ players.size() - 1 ].play(0);
     }
 
     // create sound via recording
@@ -79,7 +84,7 @@ public class Manager {
         } else fn @=> filenames[ idx ]; // "push"
         
         update_index();
-        read_index();
+        add_player( fn, idx );
     }
 
     // delete a sound entirely

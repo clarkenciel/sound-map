@@ -4,7 +4,7 @@
 
 public class Sound {
     IFFT ifft;
-    complex sound[][];
+    complex sound[0][0];
     int samps;
     int kill;
     dur rate;
@@ -16,7 +16,7 @@ public class Sound {
         
         while( f.more() ) {
             f.readLine() =>  line;
-            if( line.length() > 0 && line.find( ":" ) ) {
+            if( line.length() > 0 && line.find( ":" ) >= 0 ) {
                 i_parse( line ) => samps;
                 break;
             } else if( line.length() > 0 ) {
@@ -26,13 +26,16 @@ public class Sound {
         }
         f.close();
         NULL @=> f;
+        if( samps <= 0 )
+            sound.size() => samps;
+
         (samps / sound.size() )::samp => rate;
     }
 
     fun void play( int channel ) {
         ifft => dac;
         dac.chan(channel);
-        complex smple[];
+        complex smple[0];
         int s;
 
         while( !kill ) {
@@ -58,7 +61,7 @@ public class Sound {
         "]" => string c_end;
         int start_idx, end_idx, samps, len, lineNum;
         float re, im;
-        complex out[];
+        complex out[0];
 
         while( line.find( c_end, start_idx ) < line.length() - 1 ) {
             // get the real component

@@ -9,6 +9,7 @@ public class Recorder {
     
     fun void record( string fn, dur length ) {
         <<< "Creating sound @:", fn,"">>>;
+        int samp_count;
         // open file
         file.open( fn, FileIO.WRITE );
         
@@ -21,7 +22,9 @@ public class Recorder {
             fft.upchuck() @=> blob;
             write_sample( file, blob.cvals() ); 
             WIN::samp => now;
+            samp_count++;
         } 
+        file <= ":"+samp_count;
 
         file.close();
         // clean up

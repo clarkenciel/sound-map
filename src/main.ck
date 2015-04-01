@@ -7,4 +7,4 @@ Session s;
 s.init();
 spork ~ s.input_listen();
 
-while( true ) ms => now;
+while( s.kill ) ms => now;
