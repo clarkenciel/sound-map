@@ -24,10 +24,7 @@ public class Vector {
     }
 
     fun float z() {
-        if( coords.size() == 3 )
-            return coords[2];
-        else
-            return 0;
+        return coords[2];
     }
 
     fun void setX( float f ) {
@@ -87,7 +84,13 @@ public class Vector {
 
     // hmmmmm.....
     fun void setMag( float f ) {
+        // 1. find the ratio of the new mag to the old mag
+        f / mag() => float ratio;
 
+        // 2. multiply x and y by that ratio
+        ratio *=> coords[0];
+        ratio *=> coords[1];
+        ratio *=> coords[2]; 
     }
 
     fun Vector generate_sum( Vector v ) {
