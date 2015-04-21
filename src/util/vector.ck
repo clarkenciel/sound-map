@@ -3,7 +3,7 @@
 // Author: Danny Clarke
 
 public class Vector {
-    private float coords[0];
+    float coords[0];
 
     fun void init( float _x, float _y, float _z ) {
         coords.size(3);
@@ -37,6 +37,18 @@ public class Vector {
 
     fun void setZ( float f ) {
         f => coords[2];
+    }
+
+    fun void setX( int f ) {
+        setX( f $ float );
+    }
+
+    fun void setY( int f ) {
+        setY( f $ float );
+    }
+
+    fun void setZ( int f ) {
+        setZ( f $ float );
     }
 
     fun void add( Vector v ) {
@@ -75,9 +87,9 @@ public class Vector {
     }
 
     fun float mag() {
-        Math.pow(coords[0]) => float out_x;
-        Math.pow(coords[1]) => float out_y;
-        Math.pow(coords[2]) => float out_z;
+        Math.pow(coords[0], 2) => float out_x;
+        Math.pow(coords[1], 2) => float out_y;
+        Math.pow(coords[2], 2) => float out_z;
         Math.sqrt(out_x + out_y + out_z) => out_z;
         return out_z;
     }
@@ -85,7 +97,7 @@ public class Vector {
     // hmmmmm.....
     fun void setMag( float f ) {
         // 1. find the ratio of the new mag to the old mag
-        f / mag() => float ratio;
+        f / this.mag() => float ratio;
 
         // 2. multiply x and y by that ratio
         ratio *=> coords[0];
@@ -111,10 +123,10 @@ public class Vector {
         return v_out;
     }
 
-    fun Vector generate_div( Vector v, float f ) {
-        v.x() / f => new_x;
-        v.y() / f => new_y;
-        v.z() / f => new_z;
+    fun Vector generate_div( float f ) {
+        x() / f => float new_x;
+        y() / f => float new_y;
+        z() / f => float new_z;
         Vector new_v;
         new_v.init(new_x, new_y, new_z);
         return new_v;

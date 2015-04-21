@@ -2,7 +2,8 @@ me.dir() => string d;
 d + "src/" => string src;
 1 => int run;
 
-Machine.add( src + "class_load.ck" ) => int classes;
+Machine.add( src + "util/load.ck" ) => int util;
+Machine.add( src + "sound-map/load.ck" ) => int classes;
 second => now;
 Machine.add( src + "main.ck" ) => int main;
 

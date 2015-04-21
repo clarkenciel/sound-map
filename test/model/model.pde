@@ -6,7 +6,7 @@ ArrayList<Orb> orbs;
 Orb orb;
 
 void setup() {
-  size( 500, 500 );
+  size( 500, 500, P3D );
   orbs = new ArrayList<Orb>();
   in = new OscP5( this, 13000 );
   in.plug( this, "move",  "/orb/move" );
@@ -18,12 +18,12 @@ void setup() {
 
 void draw() {}
 
-void move( int id, float m, float x, float y ) {
-  //orb = find_orb( id );
+void move( int id, float m, float x, float y, float z ) {
+  orb = find_orb( id );
   for( int i = 0; i < orbs.size(); i++ ) {
     orb = orbs.get(i);
     if( orb.id == id ) {
-      orb.draw( x, y );
+      orb.draw( x, y, z );
     } else {
       orb.draw();
     }
@@ -31,11 +31,11 @@ void move( int id, float m, float x, float y ) {
   draw_bg();
 }
 
-void create( int id, float m, float x, float y ) {
+void create( int id, float m, float x, float y, float z ) {
   orb = find_orb( id );
   if( orb == null ) {
-    //println( "create!" );
-    orb = new Orb( id, m, x, y );
+    println( "create!" );
+    orb = new Orb( id, m, x, y, z );
     orb.draw();
     orbs.add( orb );
   }
