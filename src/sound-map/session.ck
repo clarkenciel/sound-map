@@ -4,14 +4,32 @@
 
 public class Session {
     Manager man;
-    Orb orbs[];
-    int kill;
+    OrbSystem sys;
+    int ids[0];
+    int kill, LIMIT;
+    me.dir(2) => string home;
+    home + "index.txt" => string index_fn;
+    home + "snds/" => string sound_dir;
+    home + "data/" => string data_dir;
 
     // load up our manager and start playing existing sounds
-    fun void init() {
+    // Rewrite to read the index and get information about:
+    //      sound files
+    //      orb data files
+    //      then, store array of object ids
+    fun void init( int lim ) {
         <<< "initializing and starting session","" >>>;
-        man.read_index();
-        man.load_sounds();
+        string snd_filenames[0];
+        string orb_filenames[0];
+        lim => LIMIT;
+
+        // parse file here
+
+        spork ~ man.init( snd_filenames, ids );
+        spork ~ sys.init( orb_filenames, ids, [0,500], [0,500], [-100,100], LIMIT );
+
+        NULL @=> snd_filenames;
+        NULL @=> orb_filenames;
     }
 
     fun void quit() {
@@ -45,7 +63,31 @@ public class Session {
                     man.delete_sound( msg.getInt(0) );
                 if( msg.address == "/destroy" )
                     man.destroy_player( msg.getInt(0) );
+                if( msg.address == "/merge" )
+                    man.merge( msg.getInt(0), msg.getInt(0) );
             }
         }     
+    }
+
+    fun void read_index( string snd_fns[], string orb_fns[] ) {
+        string line, fn;
+        int comma_idx, colon_idx, start_idx;
+        index.open( index_fn, FileIO.READ );
+
+        if( index.good() ) {
+            // parse the file
+            while( index.more() ) {
+                index.readLine() => line;
+                while( start_idx < line.length() ) {
+                    line.find( ",", start_idx ) => comma_idx;
+                    line.substring( start_idx, comma_idx - start_idx ) => fn;
+                    <<< "initializing sound:",fn,"">>>;
+                    comma_idx + 1 => start_idx;
+                }
+            }
+            index.close();
+        } else {
+            index.close();
+        }
     }
 }

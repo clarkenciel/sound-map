@@ -3,42 +3,14 @@
 // Author: Danny Clarke
 
 public class Manager {
-    me.dir(2) => string home;
-    home + "index.txt" => string index_fn;
-    home + "snds/" => string sound_dir;
-    home + "data/" => string data_dir;
     string filenames[0];
     FileIO index;
     Sound players[0];
     Recorder rec;
-    float orb_locs[0];
 
     // read index file and load
-    fun void read_index() {
-        string line, fn;
-        int comma_idx, start_idx;
-        index.open( index_fn, FileIO.READ );
-
-        if( index.good() ) {
-            // parse the file
-            while( index.more() ) {
-                index.readLine() => line;
-                while( start_idx < line.length() ) {
-                    line.find( ",", start_idx ) => comma_idx;
-                    line.substring( start_idx, comma_idx - start_idx ) => fn;
-                    filenames << fn;
-                    <<< "initializing sound:",fn,"">>>;
-                    comma_idx + 1 => start_idx;
-                }
-            }
-            index.close();
-        } else {
-            index.close();
-        }
-    }
+    // TODO: find way to get data for OrbSystem into and out of index.txt
     
-    // TODO: Need to find way to sustain this
-    //      Right now, these shreds will die at the end of this func
     fun void load_sounds() {
         // loop through the filenames array and read
         //  in soun files

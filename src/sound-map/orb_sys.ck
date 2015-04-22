@@ -10,7 +10,7 @@ public class OrbSystem {
     int ORB_LIMIT;
     Orb orbs[0];
 
-    fun void init( float xr[], float yr[], float zr[], int ol ) {
+    fun void init( string filenames[], int ids[], float xr[], float yr[], float zr[], int ol ) {
         //<<< "os_init", me.id(), "" >>>;
         xr[0] => X_RANGE[0];
         xr[1] => X_RANGE[1];
@@ -19,6 +19,27 @@ public class OrbSystem {
         zr[0] => Z_RANGE[0];
         zr[1] => Z_RANGE[1];
         ol => ORB_LIMIT;
+
+        for( int i; i < filenames.size(); i++ ) {
+            parse( ids[i], filenames[i] );
+        }
+
+        NULL @=> filenames;
+    }
+
+    fun void parse( int id, string filename ) {
+        string line;
+        float mass, x, y, z;
+
+        // get mass, and location form file    
+
+        // create orb
+        create_orb( id, mass, x, y, z );
+    }
+
+    fun void write( Orb o, string filename ) {
+
+
     }
 
     fun void update() {
@@ -33,12 +54,12 @@ public class OrbSystem {
         }
     }
 
-    fun void create_orb( float m, float x, float y, float z ) {
+    fun void create_orb( int id, float m, float x, float y, float z ) {
         //<<< "os_create", me.id(), "" >>>;
         if( orbs.size() + 1 <= ORB_LIMIT ) {
             orbs.size( orbs.size() + 1 );
             new Orb @=> orbs[ orbs.size() - 1 ];
-            orbs[ orbs.size() - 1 ].init( orbs.size() - 1, m, x, y, z, 0, 0, 0 );
+            orbs[ orbs.size() - 1 ].init( id, m, x, y, z, 0.0, 0.0, 0.0 );
         }
     }
 
@@ -144,5 +165,12 @@ public class OrbSystem {
         orbs.size( orbs.size() + 1 );
         new Orb @=> orbs[orbs.size()-1];
         new_orb @=> orbs[orbs.size()-1];
+    }
+
+    fun void destroy() {
+        for( int i; i < orbs.size();i ++ ) {
+            write( orb[i] );
+            destroy_orb_idx( i );
+        }
     }
 }
