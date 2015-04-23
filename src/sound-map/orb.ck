@@ -6,6 +6,8 @@
 public class Orb {
     OscOut out;
     out.dest( "localhost", 13000 );
+    me.dir(2) + "/orbs/" => string dir;
+
     int id;
     float m;
     Vector loc, vel, accel;
@@ -19,8 +21,15 @@ public class Orb {
         _m => m;
         loc.init( _x, _y, _z );
         vel.init( _xv, _yv, _zv );
-        accel.init( 0, 0, 0 );
+        accel.init( 0.0, 0.0, 0.0 );
         send( "/orb/create" );
+    }
+
+    fun void write() {
+        FileIO f;
+        f.open( dir + id + ".orb", FileIO.WRITE );
+        f <= loc.x()+":"+loc.y()+":"+loc.z()+":"+vel.x()+":"+vel.y()+":"+vel.z()+":";
+        f.close();
     }
 
     fun void move() {
@@ -66,6 +75,7 @@ public class Orb {
 
     fun void send( string addr ) {
         //<<< "orb_send", me.id(), "" >>>;
+        <<< addr,id, "" >>>;
         out.start( addr ).add( id ).add( m ).add( loc.x() ).add( loc.y() ).add( loc.z() ).send();
     }
 

@@ -8,8 +8,9 @@ public class Manager {
     Sound players[0];
     Recorder rec;
 
-    // read index file and load
-    // TODO: find way to get data for OrbSystem into and out of index.txt
+    fun string[] get_fns() {
+        return filenames; 
+    }
     
     fun void load_sounds() {
         // loop through the filenames array and read

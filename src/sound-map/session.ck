@@ -3,9 +3,11 @@
 // Author: Danny Clarke
 
 public class Session {
+    me.dir(1) + "index.txt" => string index_file;
+    FileIO index;
     Manager man;
     OrbSystem sys;
-    int ids[0];
+    int ids[0]; // connect indexes to ids
     int kill, LIMIT;
     me.dir(2) => string home;
     home + "index.txt" => string index_fn;
@@ -21,15 +23,67 @@ public class Session {
         <<< "initializing and starting session","" >>>;
         string snd_filenames[0];
         string orb_filenames[0];
+        string data[0][0];
+        string line, sf, of;
+        int id, start_idx, end_idx, len, line_num;
         lim => LIMIT;
 
-        // parse file here
+        index.open( index_file, FileIO.READ );
 
+        // parse the file
+        if( index.good() ) {
+            while( index.more() ) {
+                // grow our array of data
+                data.size(data.size());
+                new string[0] @=> data[data.size()-1];
+
+                // actually parse the line
+                index.readLine() => line;
+                while( line.length() > 0 && line.find(":", start_idx) >= 0 ) {
+                    line.find(":", start_idx) => end_idx;
+                    end_idx - start_idx => len;
+                    data[line_num] << line.substring(start_idx, len);
+                    end_idx + 1 => start_idx; 
+                    if( start_idx == line.length() ) {
+                        0 => start_idx => end_idx => len;
+                        break; 
+                    }
+                }
+
+                line_num++;
+            }
+        } else {
+            // create a new index file
+            index.close();
+            index.open( index_file, FileIO.WRITE );
+            index.close();
+        }
+        
+        // parse our data array
+        for( int i; i < data.size(); i++ ) {
+            if( data[i].size() == 3 ) {
+                ids << Std.atoi( data[0] );
+                snd_filenames << data[1];
+                orb_filenames << data[2];
+            }
+        }
+
+        // initialize our other bits
         spork ~ man.init( snd_filenames, ids );
         spork ~ sys.init( orb_filenames, ids, [0,500], [0,500], [-100,100], LIMIT );
 
         NULL @=> snd_filenames;
         NULL @=> orb_filenames;
+    }
+    
+    fun void write_index() {
+        index.open( index_file, FileIO.WRITE );
+        man.get_filenames() @=> string snd_fns[];
+        sys.get_filenames() @=> string orb_fns[];
+        for( int i; i < ids.size(); i ++ ) {
+            index <= Std.itoa(ids[i])+":"+snd_fns[i]+":"+orb_fns+":\n";
+        }
+        index.close(); 
     }
 
     fun void quit() {

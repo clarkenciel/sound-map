@@ -4,13 +4,14 @@
 // Author: Danny Clarke
 
 public class OrbSystem {
+    string filenames[0];
     float X_RANGE[2];
     float Y_RANGE[2];
     float Z_RANGE[2];
     int ORB_LIMIT;
     Orb orbs[0];
 
-    fun void init( string filenames[], int ids[], float xr[], float yr[], float zr[], int ol ) {
+    fun void init( string fns[], int ids[], float xr[], float yr[], float zr[], int ol ) {
         //<<< "os_init", me.id(), "" >>>;
         xr[0] => X_RANGE[0];
         xr[1] => X_RANGE[1];
@@ -19,12 +20,16 @@ public class OrbSystem {
         zr[0] => Z_RANGE[0];
         zr[1] => Z_RANGE[1];
         ol => ORB_LIMIT;
+    
+        fns @=> filenames;
 
         for( int i; i < filenames.size(); i++ ) {
             parse( ids[i], filenames[i] );
         }
-
-        NULL @=> filenames;
+    }
+    
+    fun string[] get_fns() {
+        return filenames;
     }
 
     fun void parse( int id, string filename ) {
@@ -32,14 +37,13 @@ public class OrbSystem {
         float mass, x, y, z;
 
         // get mass, and location form file    
-
+        
         // create orb
         create_orb( id, mass, x, y, z );
     }
 
-    fun void write( Orb o, string filename ) {
-
-
+    fun void write( Orb o ) {
+        o.write();
     }
 
     fun void update() {
