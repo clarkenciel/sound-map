@@ -11,7 +11,7 @@ public class Orb {
     float m;
     float sig[4];
     Vector loc, vel, accel;
-    6.018 * Math.pow( 10, -5 ) => float g_const;
+    6.018 * Math.pow( 10, 2 ) => float g_const;
 
     fun void init( int _id, float _m, 
                     float _x, float _y, float _z, 
@@ -23,12 +23,13 @@ public class Orb {
         vel.init( _xv, _yv, _zv );
         accel.init( 0.0, 0.0, 0.0 );
         dir + id + ".orb" => filename;
+        <<< "orb",id,"mass:",m,"initialized at:",loc.x(),loc.y(),loc.z(),vel.x(),vel.y(),vel.z(),"" >>>;
     }
 
     fun void write() {
         FileIO f;
         f.open( filename, FileIO.WRITE );
-        f <= loc.x()+":"+loc.y()+":"+loc.z()+":"+vel.x()+":"+vel.y()+":"+vel.z()+":"+sig[0]+":"+sig[1]+":"+sig[2]+":"+sig[3];
+        f <= m+":"+loc.x()+":"+loc.y()+":"+loc.z()+":"+vel.x()+":"+vel.y()+":"+vel.z()+":"+sig[0]+":"+sig[1]+":"+sig[2]+":"+sig[3];
         f.close();
     }
 
@@ -44,7 +45,6 @@ public class Orb {
     // Taken from Daniel Shiffman's gravity example
     fun void gravitate( Orb other ) {
         //<<< "orb_grav", me.id(), "" >>>;
-        //<<< id+" loc: ", loc[0], loc[1], other.id+" loc: ", other.loc[0], other.loc[1], "" >>>;
         loc.generateDiff( other.loc ) @=> Vector force; 
         force.mag() => float dist;
         (g_const * m * other.m) / (dist * dist) => float strength;
@@ -64,11 +64,12 @@ public class Orb {
     }
 
     // return true or false if the distance from a vector < mass 
-    fun int collCheck( Vector v ) {
+    fun int collCheck( Orb o ) {
         //<<< "orb_coll_check", me.id(), "" >>>;
-        if( loc.dist( v ) <= m ) 
+        if( loc.dist( o.loc ) < o.m + m ) {
+            <<< "collision!","">>>;
             return 1;
-        else
+        } else
             return 0;         
     }
 

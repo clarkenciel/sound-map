@@ -32,6 +32,9 @@ public class Session {
         string line, sf, of;
         int id, start_idx, end_idx, len, line_num;
         lim => sys.ORB_LIMIT;
+        [0.0,500.0] @=> sys.X_RANGE;
+        [0.0,500.0] @=> sys.Y_RANGE;
+        [-100.0,100.0] @=> sys.Z_RANGE;
 
         index.open( index_file, FileIO.READ );
 
@@ -69,7 +72,7 @@ public class Session {
     
             // initialize our other bits
             man.init( snd_filenames, ids );
-            sys.init( orb_filenames, ids, [0.0,500.0], [0.0,500.0], [-100.0,100.0] );
+            sys.init( orb_filenames, ids );
         } else {
             // create a new index file
             index.close();
@@ -85,20 +88,20 @@ public class Session {
     fun void writeIndex() {
         string output;
         index.open( index_file, FileIO.WRITE );
-        <<< "getting sound files", "" >>>;
+        //<<< "getting sound files", "" >>>;
         man.getFilenames( ids ) @=> string snd_fns[];
-        for( int i; i < snd_fns.size(); i++ ) {
+        /*for( int i; i < snd_fns.size(); i++ ) {
             <<< "sound f:", snd_fns[i], "" >>>;
         }
-        <<< "getting orb files", "" >>>;
+        <<< "getting orb files", "" >>>;*/
         sys.getFilenames( ids ) @=> string orb_fns[];
-        for( int i; i < orb_fns.size(); i++ ) {
+        /*for( int i; i < orb_fns.size(); i++ ) {
             <<< "orb f:", orb_fns[i], "" >>>;
         }
-        <<< "writing to index", "" >>>;
+        <<< "writing to index", "" >>>;*/
         for( int i; i < ids.size(); i ++ ) {
             Std.itoa(ids[i])+":"+snd_fns[i]+":"+orb_fns[i]+":\n" => output;
-            <<< "writing",output,"to index.txt","">>>;
+            //<<< "writing",output,"to index.txt","">>>;
             index <= output;
         }
         index.close(); 
@@ -146,14 +149,22 @@ public class Session {
         (second / 60) => dur framerate;
 
         while( framerate => now ) {
+            //writeIndex();
             if( command == "record" )
                 create( cur_x, cur_y, cur_z );
             if( command == "quit" )
                 quit();         
     
             sys.update() @=> colls;
+            <<< "resolving collisions", "" >>>;
             resolveCollisions( colls ) @=> colls;
+
+            <<< "collisions:", "" >>>;
+            for( int i; i < colls.size(); i++ ) {
+                <<< colls[i], colls[i], "" >>>;
+            }
             
+            <<< "combining:", "" >>>;
             for( int i; i < colls.size(); i++ ) {
                 combine( colls[i][0], colls[i][1] );
             }
@@ -252,9 +263,15 @@ public class Session {
         int out[0][0];
         
         for( int i; i < colls.size(); i++ ) {
-            for( int j; j < colls.size(); j++ ) {
-                if( !isIn( out, colls[i] ) )
-                    out << colls[i];
+            if( colls.size() > 0 ) {
+                for( int j; j < colls[i].size(); j++ ) {
+                    <<< colls[i][j], "" >>>;
+                    if( !isIn( out, [i,colls[i][j]] ) ) {
+                        out.size( out.size() + 1 );
+                        new int[0] @=> out[out.size()-1];
+                        [i, colls[i][j]] @=> out[out.size()-1];
+                    }
+                }
             }
         } 
 

@@ -14,15 +14,8 @@ public class OrbSystem {
     //
     // Core functions
     //
-    fun void init( string fns[], int ids[], float xr[], float yr[], float zr[] ) {
+    fun void init( string fns[], int ids[] ) {
         //<<< "os_init", me.id(), "" >>>;
-        xr[0] => X_RANGE[0];
-        xr[1] => X_RANGE[1];
-        yr[0] => Y_RANGE[0];
-        yr[1] => Y_RANGE[1];
-        zr[0] => Z_RANGE[0];
-        zr[1] => Z_RANGE[1];
-    
         fns @=> filenames;
 
         for( int i; i < filenames.size(); i++ ) {
@@ -33,22 +26,17 @@ public class OrbSystem {
     fun int[][] update() {
         //<<< "os_update", me.id(), "" >>>;
         int out[0][0];
-        int tmp[0];
 
         if( orbs.size() > 0 ) {
             for( int j; j < orbs.size(); j ++ ) {
-                if( orbs[j].good == 1 ) {
-                    gravitate( orbs[j] );
+                gravitate( orbs[j] );
 
-                    collChecks( orbs[j] ) @=> tmp;
-                    if( tmp.size() > 0 ) {
-                        out.size( out.size() + 1 );
-                        new int[0] @=> out[ out.size() - 1 ];
-                        tmp @=> out[ out.size() - 1];
-                    }
-                    edgeCheck( orbs[j] );
-                    orbs[j].move();
-                }
+                out.size( out.size() + 1 );
+                new int[0] @=> out[ out.size() - 1 ];
+                collChecks( orbs[j] )  @=> out[ out.size() - 1];
+
+                edgeCheck( orbs[j] );
+                orbs[j].move();
             }
         }
         return out;
@@ -79,6 +67,7 @@ public class OrbSystem {
     fun void destroyOrbById( int id ) {
         //<<< "os_destroy_id", me.id(), "" >>>;
         getIdx(id) => int idx; 
+        if( idx == -1 ) id => idx;
         destroyOrbByIdx( idx ); 
     }
 
@@ -97,7 +86,10 @@ public class OrbSystem {
         float x_mean, y_mean, z_mean, m_tot;
         
         getIdx( id1 ) => int one_idx;
+        if( one_idx == -1 ) id1 => one_idx;
         getIdx( id2 ) => int two_idx;
+        if( two_idx == -1 ) id2 => two_idx;
+        <<< "one_idx:",one_idx,id1,"two_idx:",two_idx,id2,"">>>;
         
         (orbs[one_idx].loc.x() + orbs[two_idx].loc.x()) / 2.0 => x_mean; 
         (orbs[one_idx].loc.y() + orbs[two_idx].loc.y()) / 2.0 => y_mean; 
@@ -114,7 +106,9 @@ public class OrbSystem {
         <<< "combining", id1, "&", id2, "into", new_id, "" >>>;
         generateCombo( new_id, id1, id2 ) @=> Orb new_orb;
 
+        <<< "destroying orbs", id1, id2, "" >>>;
         destroyOrbById( id1 );
+        <<< "destroying orbs", id1, id2, "" >>>;
         destroyOrbById( id2 );
 
         orbs.size( orbs.size() + 1 );
@@ -136,7 +130,7 @@ public class OrbSystem {
 
     fun void gravitate( Orb orb ) {
         for( int i; i < orbs.size(); i++ ) {
-            if( orb.id != orbs[i].id ) 
+            if( orbs[i].good && orb.id != orbs[i].id ) 
                 orb.gravitate( orbs[i] );
         }
     }
@@ -173,7 +167,7 @@ public class OrbSystem {
         //<<< "os_coll_checks", me.id(), "" >>>;
         int out[0];
         for( int k; k < orbs.size(); k++ ) {
-            if( orb.id != orbs[k].id && orb.collCheck( orbs[k].loc ) ) {
+            if( orbs[k].good && orb.id != orbs[k].id && orb.collCheck( orbs[k] ) ) {
                 out << orbs[k].id; 
             }
         }
@@ -288,30 +282,18 @@ public class OrbSystem {
     //
     fun void updateListen( Orb o, OrbUpdater e ) {
         e => now;
-        <<< "updating orb","">>>;
         e.good => o.good;
-        if( e.mass > 0 ){
-            <<< "updating mass","">>>;
-            e.mass @=> o.m;
-        }
-        if( e.sig[0] > 0 ){
-            <<< "updating sig[0]","">>>; 
+        if( e.mass > 0 )
+            e.mass * 10000 @=> o.m;
+        if( e.sig[0] > 0 )
             e.sig[0] @=> o.sig[0];
-        }
-        if( e.sig[1] > 0 ) {
-            <<< "updating sig[0]","">>>; 
+        if( e.sig[1] > 0 )
             e.sig[1] @=> o.sig[1];
-        }
-        if( e.sig[2] > 0 ) {
-            <<< "updating sig[0]","">>>; 
+        if( e.sig[2] > 0 )
             e.sig[2] @=> o.sig[2];
-        }
-        if( e.sig[3] > o.sig[3] ) {
-            <<< "updating sig[0]","">>>; 
+        if( e.sig[3] > o.sig[3] )
             e.sig[3] @=> o.sig[3];
-        }
         0 => e.good;
         e.response.broadcast();
-        <<< "Orb id:", o.id, "is good to go!", "" >>>;
     }
 }

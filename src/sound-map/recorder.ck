@@ -59,9 +59,7 @@ public class Recorder extends Chubgraph {
 
         //NULL @=> wv;
         //NULL @=> fft;  
-        <<< "recorder waiting for response","">>>;
         e.response => now;
-        <<< "response received, dying","">>>;
         //NULL @=> res;
         return filename + ".wav";
     } 
