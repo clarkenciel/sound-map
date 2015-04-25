@@ -10,7 +10,7 @@ public class Session {
     OrbSystem sys;
 
     int ids[0]; // connect indexes to ids
-    int kill, LIMIT;
+    int kill;
     float cur_x, cur_y, cur_z;
 
     me.dir(2) => string home;
@@ -31,20 +31,21 @@ public class Session {
         string data[0][0];
         string line, sf, of;
         int id, start_idx, end_idx, len, line_num;
-        lim => LIMIT;
+        lim => sys.ORB_LIMIT;
 
         index.open( index_file, FileIO.READ );
 
         // parse the file
         if( index.good() ) {
             while( index.more() ) {
+                0 => start_idx => end_idx => len;
                 // grow our array of data
                 data.size( data.size() + 1 );
                 new string[0] @=> data[data.size()-1];
 
                 // actually parse the line
                 index.readLine() => line;
-                while( line.length() > 0 && line.find(":", start_idx) >= 0 ) {
+                while( line.length() > 0 && start_idx < line.length() && line.find(":", start_idx) >= 0 ) {
                     line.find(":", start_idx) => end_idx;
                     end_idx - start_idx => len;
                     data[line_num] << line.substring(start_idx, len);
@@ -68,7 +69,7 @@ public class Session {
     
             // initialize our other bits
             man.init( snd_filenames, ids );
-            sys.init( orb_filenames, ids, [0.0,500.0], [0.0,500.0], [-100.0,100.0], LIMIT );
+            sys.init( orb_filenames, ids, [0.0,500.0], [0.0,500.0], [-100.0,100.0] );
         } else {
             // create a new index file
             index.close();
@@ -82,22 +83,34 @@ public class Session {
     }
     
     fun void writeIndex() {
+        string output;
         index.open( index_file, FileIO.WRITE );
-        man.getFilenames() @=> string snd_fns[];
-        sys.getFilenames() @=> string orb_fns[];
+        <<< "getting sound files", "" >>>;
+        man.getFilenames( ids ) @=> string snd_fns[];
+        for( int i; i < snd_fns.size(); i++ ) {
+            <<< "sound f:", snd_fns[i], "" >>>;
+        }
+        <<< "getting orb files", "" >>>;
+        sys.getFilenames( ids ) @=> string orb_fns[];
+        for( int i; i < orb_fns.size(); i++ ) {
+            <<< "orb f:", orb_fns[i], "" >>>;
+        }
+        <<< "writing to index", "" >>>;
         for( int i; i < ids.size(); i ++ ) {
-            index <= Std.itoa(ids[i])+":"+snd_fns[i]+":"+orb_fns+":\n";
+            Std.itoa(ids[i])+":"+snd_fns[i]+":"+orb_fns[i]+":\n" => output;
+            <<< "writing",output,"to index.txt","">>>;
+            index <= output;
         }
         index.close(); 
     }
 
     fun void quit() {
+        writeIndex();
         man.quit();
         sys.quit();
-        NULL @=> man;
-        NULL @=> sys;
         <<< "session quitting", "" >>>;
         1 => kill;
+        "" => command;
     }
 
     fun void create( float x, float y, float z ) {
@@ -105,25 +118,31 @@ public class Session {
         OrbUpdater e;
         generateId() => int id;
         spork ~ man.create(id, e);
+        man.addPlayer( me.dir(2)+"snds/"+Std.itoa( id )+".wav", id, e );
         sys.create( id, x, y, z, e);
+        "" => command;
     }
 
     fun void combine( int id1, int id2 ) {
         OrbUpdater e;
-        getById( id1 ) => int one_idx;
-        getById( id2 ) => int two_idx;
+        getIdxById( id1 ) => int one_idx;
+        getIdxById( id2 ) => int two_idx;
+        generateId() => int new_id;
         
         if( id1 < id2 ) {
-            spork ~ man.combine( id1, id1, id2, e );
-            sys.combine( id1, id1, id2, e );
+            spork ~ man.combine( new_id, id1, id2, e );
+            sys.combine( new_id, id1, id2, e );
         } else {
-            spork ~ man.combine( id2, id1, id2, e );
-            sys.combine( id2, id1, id2, e );
+            spork ~ man.combine( new_id, id1, id2, e );
+            sys.combine( new_id, id1, id2, e );
         }
+        removeId( one_idx );
+        removeId( two_idx );
     }
 
     fun void loop() {
         int colls[0][0];
+        Orb orbs[0];
         (second / 60) => dur framerate;
 
         while( framerate => now ) {
@@ -138,9 +157,12 @@ public class Session {
             for( int i; i < colls.size(); i++ ) {
                 combine( colls[i][0], colls[i][1] );
             }
+
+            sys.getOrbs() @=> orbs;
+            send( orbs );
         }
     }          
-    
+
     // will figure the specifics of this with Wolfgang
     fun void listen() {
         OscIn in;
@@ -154,9 +176,9 @@ public class Session {
                 <<< msg.address, "received","">>>;
                 if( msg.address == "/session/record" ) {
                     "record" => command;
-                    msg.getFloat(0) => float cur_x;
-                    msg.getFloat(1) => float cur_y;
-                    msg.getFloat(2) => float cur_z;
+                    msg.getFloat(0) => cur_x;
+                    msg.getFloat(1) => cur_y;
+                    msg.getFloat(2) => cur_z;
                 }
                 if( msg.address == "/session/quit" )
                     "quit" => command;
@@ -186,7 +208,20 @@ public class Session {
         }
     }
 
-    fun int getById( int id ) {
+    fun void send( Orb orbs[] ) {
+        OscOut out;
+        out.dest( "localhost", 57121 );
+
+        for( int i; i < orbs.size(); i++ ) {
+            out.start( "/orb/update" );
+            out.add( orbs[i].id );
+            out.add( orbs[i].m );
+            out.add( orbs[i].loc.x() ).add( orbs[i].loc.y() ).add( orbs[i].loc.z() );
+            out.send();
+        }
+    }
+
+    fun int getIdxById( int id ) {
         for( int i; i < ids.size(); i++ ) {
             if( ids[i] == id )
                 return i;
@@ -200,8 +235,18 @@ public class Session {
             if( ids[i] > max )
                 ids[i] => max;
         }
+        ids.size( ids.size() + 1 );
+        max + 1 => ids[ ids.size() - 1 ];
         return max + 1;
     }
+
+    fun void removeId( int id ) {
+        getIdxById( id ) => int idx;
+        for( idx => int i; i < ids.size() - 1; i++ ) {
+            ids[i+1] => ids[i];
+        }
+        ids.size( ids.size() - 1 );
+    } 
 
     fun int[][] resolveCollisions( int colls[][] ) {
         int out[0][0];

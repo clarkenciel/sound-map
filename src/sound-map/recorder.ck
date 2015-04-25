@@ -40,6 +40,7 @@ public class Recorder extends Chubgraph {
         }
         wv.record(0);
         wv.closeFile();
+        len => now; 
 
         for( int i; i < res.size(); i++ ) {
             res[i] / (256 * 0.25) +=> avg;
@@ -56,10 +57,12 @@ public class Recorder extends Chubgraph {
         fft =< blackhole;
         wv =< fft;
 
-        NULL @=> wv;
-        NULL @=> fft;  
-        NULL @=> res;
-
+        //NULL @=> wv;
+        //NULL @=> fft;  
+        <<< "recorder waiting for response","">>>;
+        e.response => now;
+        <<< "response received, dying","">>>;
+        //NULL @=> res;
         return filename + ".wav";
     } 
 

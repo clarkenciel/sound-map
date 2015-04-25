@@ -13,23 +13,38 @@ public class Sound extends Chubgraph {
     fun void init( string fn, int _id ) {    
         _id => id;
         fn => filename;
-        s.read( fn );
+
+        dac.chan(id);
+    }
+
+    fun void play( OrbUpdater ou, StopEvent e ) {
+        ou => now;
+        s.read( filename ); 
         s.pos( 0 );
         s.loop( 1 );
         s.rate( 1 );
         
         s.length() => length;
         s.samples() => samples;
-
-        dac.chan(id);
-    }
-
-    fun void play( StopEvent e ) {
+        <<< "playing:", filename, "thru channel:",id,"">>>;
         while( e.go ) e => now; 
         s =< dac;
         NULL @=> s;
     }
 
+    fun void play( StopEvent e ) {
+        s.read( filename ); 
+        s.pos( 0 );
+        s.loop( 1 );
+        s.rate( 1 );
+        
+        s.length() => length;
+        s.samples() => samples;
+        <<< "playing:", filename, "thru channel:",id,"">>>;
+        while( e.go ) e => now; 
+        s =< dac;
+        NULL @=> s;
+    }
     fun void destroy() {
         FileIO f;
         f.open( filename, FileIO.WRITE );

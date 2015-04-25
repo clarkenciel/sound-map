@@ -4,9 +4,10 @@
 // Author: Danny Clarke
 
 public class Orb {
-    me.dir(2) + "/orbs/" => string dir;
+    me.dir(2) + "orbs/" => string dir;
 
     int id, good;
+    string filename;
     float m;
     float sig[4];
     Vector loc, vel, accel;
@@ -21,12 +22,13 @@ public class Orb {
         loc.init( _x, _y, _z );
         vel.init( _xv, _yv, _zv );
         accel.init( 0.0, 0.0, 0.0 );
+        dir + id + ".orb" => filename;
     }
 
     fun void write() {
         FileIO f;
-        f.open( dir + id + ".orb", FileIO.WRITE );
-        f <= loc.x()+":"+loc.y()+":"+loc.z()+":"+vel.x()+":"+vel.y()+":"+vel.z()+":";
+        f.open( filename, FileIO.WRITE );
+        f <= loc.x()+":"+loc.y()+":"+loc.z()+":"+vel.x()+":"+vel.y()+":"+vel.z()+":"+sig[0]+":"+sig[1]+":"+sig[2]+":"+sig[3];
         f.close();
     }
 

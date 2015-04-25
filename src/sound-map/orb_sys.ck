@@ -14,7 +14,7 @@ public class OrbSystem {
     //
     // Core functions
     //
-    fun void init( string fns[], int ids[], float xr[], float yr[], float zr[], int ol ) {
+    fun void init( string fns[], int ids[], float xr[], float yr[], float zr[] ) {
         //<<< "os_init", me.id(), "" >>>;
         xr[0] => X_RANGE[0];
         xr[1] => X_RANGE[1];
@@ -22,7 +22,6 @@ public class OrbSystem {
         yr[1] => Y_RANGE[1];
         zr[0] => Z_RANGE[0];
         zr[1] => Z_RANGE[1];
-        ol => ORB_LIMIT;
     
         fns @=> filenames;
 
@@ -47,7 +46,6 @@ public class OrbSystem {
                         new int[0] @=> out[ out.size() - 1 ];
                         tmp @=> out[ out.size() - 1];
                     }
-    
                     edgeCheck( orbs[j] );
                     orbs[j].move();
                 }
@@ -56,16 +54,18 @@ public class OrbSystem {
         return out;
     }
 
-    fun int createFromFile( int id, float m, float x, float y, float z ) {
+    // should probably refactor these for vectors since I have them
+    fun int createFromFile( int id, float m, float x, float y, float z, float xvel, float yvel, float zvel ) {
         if( orbs.size() + 1 <= ORB_LIMIT ) {
             orbs.size( orbs.size() + 1 );
             new Orb @=> orbs[ orbs.size() - 1 ];
-            orbs[ orbs.size() - 1 ].init( id, m, x, y, z, 0.0, 0.0, 0.0 );
-            return orbs.size() -1;
+            orbs[ orbs.size() - 1 ].init( id, m, x, y, z, xvel, yvel, zvel );
+            return orbs.size() - 1;
         }
         return -1;
     }
 
+    // same here
     fun void create( int id, float x, float y, float z, OrbUpdater e ) {
         //<<< "os_create", me.id(), "" >>>;
         if( orbs.size() + 1 <= ORB_LIMIT ) {
@@ -111,6 +111,7 @@ public class OrbSystem {
     }
 
     fun void combine( int new_id, int id1, int id2, OrbUpdater e) {
+        <<< "combining", id1, "&", id2, "into", new_id, "" >>>;
         generateCombo( new_id, id1, id2 ) @=> Orb new_orb;
 
         destroyOrbById( id1 );
@@ -125,8 +126,7 @@ public class OrbSystem {
 
     fun void quit() {
         for( int i; i < orbs.size();i ++ ) {
-            write( orbs[i] );
-            destroyOrbByIdx( i );
+            orbs[i].write();
         }
     }
 
@@ -177,13 +177,23 @@ public class OrbSystem {
                 out << orbs[k].id; 
             }
         }
+
+        return out;
     }
 
     //
     // File management
     //
-    fun string[] getFilenames() {
-        return filenames;
+    fun string[] getFilenames( int ids[] ) {
+        string out[0];
+        Orb o;
+        for( int i; i < ids.size(); i++ ) {
+            if( getIdx( ids[i] ) >= 0 ) {
+                getOrbById( ids[i] ) @=> o;
+                out << o.filename;
+            }
+        }
+        return out;
     }
 
     fun void parse( int id, string filename ) {
@@ -192,27 +202,29 @@ public class OrbSystem {
         if( f.good() && f.size() > 0 ) {
             f.readLine() => string line;
 
-            float mass, x, y, z, sig0, sig1, sig2, sig3;
-            float parsed[8];
+            float mass, x, y, z, xvel, yvel, zvel, sig0, sig1, sig2, sig3;
+            float parsed[11];
 
             // get mass, and location from file    
             ":" => string delim;
             int start_idx, end_idx, len, c;
-            while( start_idx < line.length() - 1 ) {
+            while( line.length() > 0 && start_idx < line.length() && line.find(delim, start_idx) >= 0 ) {
                 line.find( delim, start_idx ) => end_idx;
                 end_idx - start_idx => len;
                 Std.atof( line.substring( start_idx, len ) ) => parsed[c];
                 end_idx + 1 => start_idx;
+                c++;
             } 
                 
             // pattern matching would sure be nice here
             parsed[0] => mass;
             parsed[1] => x; parsed[2] => y; parsed[3] => z;
-            parsed[4] => sig0; parsed[5] => sig1; 
-            parsed[6] => sig2; parsed[7] => sig3;
+            parsed[4] => xvel; parsed[5] => yvel; parsed[6] => zvel;
+            parsed[7] => sig0; parsed[8] => sig1; 
+            parsed[9] => sig2; parsed[10] => sig3;
         
             // create orb
-            createFromFile( id, mass, x, y, z ) => int nu_idx;
+            createFromFile( id, mass, x, y, z, xvel, yvel, zvel ) => int nu_idx;
             if( nu_idx >= 0 ) {
                 1 => orbs[nu_idx].good; 
                 sig0 => orbs[nu_idx].sig[0];
@@ -222,10 +234,6 @@ public class OrbSystem {
             }
         }
         f.close();
-    }
-
-    fun void write( Orb o ) {
-        o.write();
     }
 
     //
@@ -264,25 +272,46 @@ public class OrbSystem {
         return NULL;
     }
 
+    fun Orb[] getOrbs() {
+        Orb out[0];
+        for( int i; i < orbs.size(); i++ ) {
+            if( orbs[i].good ) {
+                out.size( out.size() + 1 );
+                orbs[i] @=> out[ out.size() - 1 ];
+            }
+        } 
+        return out;
+    }
+
     //
     // Misc. Support
     //
     fun void updateListen( Orb o, OrbUpdater e ) {
-        while( true ) {
-            e => now;
-            e.good => o.good;
-            if( e.mass > 0 )
-                e.mass => o.m;
-            else {
-                if( e.sig[0] > 0 )
-                    e.sig[0] => o.sig[0];
-                if( e.sig[1] > 0 )
-                    e.sig[1] => o.sig[1];
-                if( e.sig[2] > 0 )
-                    e.sig[2] => o.sig[2];
-                if( e.sig[3] => o.sig[3] )
-                    e.sig[3] => o.sig[3];
-            }
+        e => now;
+        <<< "updating orb","">>>;
+        e.good => o.good;
+        if( e.mass > 0 ){
+            <<< "updating mass","">>>;
+            e.mass @=> o.m;
         }
+        if( e.sig[0] > 0 ){
+            <<< "updating sig[0]","">>>; 
+            e.sig[0] @=> o.sig[0];
+        }
+        if( e.sig[1] > 0 ) {
+            <<< "updating sig[0]","">>>; 
+            e.sig[1] @=> o.sig[1];
+        }
+        if( e.sig[2] > 0 ) {
+            <<< "updating sig[0]","">>>; 
+            e.sig[2] @=> o.sig[2];
+        }
+        if( e.sig[3] > o.sig[3] ) {
+            <<< "updating sig[0]","">>>; 
+            e.sig[3] @=> o.sig[3];
+        }
+        0 => e.good;
+        e.response.broadcast();
+        <<< "Orb id:", o.id, "is good to go!", "" >>>;
     }
 }

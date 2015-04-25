@@ -30,12 +30,14 @@ public class SoundManager {
     // create sound via recording
     // rewrite of create_sound for refactor
     fun string create( int id, OrbUpdater e ) {
-        me.dir(2) + "/snds/" + Std.itoa( id ) => string fn;
+        me.dir(2) + "snds/" + Std.itoa( id ) => string fn;
         rec.record( fn, 3::second, e ) => fn; 
-        addPlayer( fn, id );
+        //addPlayer( fn, id );
     }
 
-    fun void addPlayer( string fn, int chan ) {
+    fun void addPlayer( string fn, int chan, OrbUpdater ou ) {
+        <<< "Adding player for:",fn,"on channel",chan,"">>>;
+
         players.size( players.size() + 1 );
         new Sound @=> players[ players.size() - 1 ];
 
@@ -43,7 +45,7 @@ public class SoundManager {
         new StopEvent @=> stops[ stops.size() - 1];
 
         players[ players.size() - 1 ].init( fn, chan );
-        spork ~ players[ players.size() - 1 ].play( stops[ stops.size() - 1 ] );
+        spork ~ players[ players.size() - 1 ].play( ou, stops[ stops.size() - 1 ] );
     }
 
     // delete a sound entirely
@@ -65,14 +67,16 @@ public class SoundManager {
         // remove from player array    
         getSoundIdx( id ) @=> int idx;
 
-        NULL @=> players[idx];
-        for( idx => int i; i < players.size() - 1; i++ ) {
-            players[i+1] @=> players[i];
+        if( idx >= 0 ) {
+            NULL @=> players[idx];
+            for( idx => int i; i < players.size() - 1; i++ ) {
+                players[i+1] @=> players[i];
+            }
+            NULL @=> players[ players.size() - 1 ];
+        
+            // reduce array size
+            players.size( players.size() - 1 );
         }
-        NULL @=> players[ players.size() - 1 ];
-    
-        // reduce array size
-        players.size( players.size() - 1 );
     }
     
     // delete all of the players, but not the sounds
@@ -135,4 +139,16 @@ public class SoundManager {
         }
         return out; 
     }
+
+    fun string[] getFilenames( int ids[] ) {
+        string out[0];
+        for( int i; i < ids.size(); i++ ) {
+            for( int j; j < players.size(); j++ ) {
+                if( players[j].id == ids[i] )
+                    out << players[j].filename;
+            }
+        }
+        return out; 
+    }
+
 }

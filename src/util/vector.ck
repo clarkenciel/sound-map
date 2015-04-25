@@ -3,15 +3,13 @@
 // Author: Danny Clarke
 
 public class Vector {
-    float coords[0];
+    float coords[3];
 
     fun void init( float _x, float _y, float _z ) {
-        coords.size(3);
         [_x, _y, _z] @=> coords;
     }
 
     fun void init( float _x, float _y ) {
-        coords.size(3);
         [_x,_y, 0.0] @=> coords;
     }
     

@@ -1,3 +1,3 @@
 OscOut out;
 out.dest( "localhost", 57120 );
-out.start( "/quit" ).send();
+out.start( "/session/quit" ).send();

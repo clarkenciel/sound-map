@@ -3,7 +3,7 @@
 // Author: Danny Clarke
 
 OscOut out;
-out.dest( "localhost", 57121 );
+out.dest( "localhost", 57122 );
 Session s;
 
 s.init( 20 );

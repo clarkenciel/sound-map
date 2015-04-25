@@ -14,7 +14,7 @@ while( run ) ms => now;
 fun void quit_listen() {
     OscIn in;
     OscMsg msg;
-    in.port( 57121 );
+    in.port( 57122 );
     in.addAddress( "/quit" );
     
     while( true ) {
