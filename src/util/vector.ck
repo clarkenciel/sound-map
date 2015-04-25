@@ -12,7 +12,7 @@ public class Vector {
 
     fun void init( float _x, float _y ) {
         coords.size(3);
-        [_x,_y, 0] @=> coords;
+        [_x,_y, 0.0] @=> coords;
     }
     
     fun float x() {
@@ -105,7 +105,7 @@ public class Vector {
         ratio *=> coords[2]; 
     }
 
-    fun Vector generate_sum( Vector v ) {
+    fun Vector generateSum( Vector v ) {
         v.x() + coords[0] => float new_x;
         v.y() + coords[1] => float new_y;
         v.z() + coords[2] => float new_z;
@@ -114,7 +114,7 @@ public class Vector {
         return out_v;
     }
 
-    fun Vector generate_diff( Vector v ) {
+    fun Vector generateDiff( Vector v ) {
         coords[0] - v.x() => float new_x;
         coords[1] - v.y() => float new_y;
         coords[2] - v.z() => float new_z;
@@ -123,7 +123,7 @@ public class Vector {
         return v_out;
     }
 
-    fun Vector generate_div( float f ) {
+    fun Vector generateDiv( float f ) {
         x() / f => float new_x;
         y() / f => float new_y;
         z() / f => float new_z;

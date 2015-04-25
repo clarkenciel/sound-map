@@ -3,16 +3,21 @@
 // Author: Danny Clarke
 
 public class Session {
-    me.dir(1) + "index.txt" => string index_file;
+    me.dir(2) + "index.txt" => string index_file;
+
     FileIO index;
-    Manager man;
+    SoundManager man;
     OrbSystem sys;
+
     int ids[0]; // connect indexes to ids
     int kill, LIMIT;
+    float cur_x, cur_y, cur_z;
+
     me.dir(2) => string home;
     home + "index.txt" => string index_fn;
     home + "snds/" => string sound_dir;
     home + "data/" => string data_dir;
+    string command;
 
     // load up our manager and start playing existing sounds
     // Rewrite to read the index and get information about:
@@ -34,7 +39,7 @@ public class Session {
         if( index.good() ) {
             while( index.more() ) {
                 // grow our array of data
-                data.size(data.size());
+                data.size( data.size() + 1 );
                 new string[0] @=> data[data.size()-1];
 
                 // actually parse the line
@@ -52,6 +57,18 @@ public class Session {
 
                 line_num++;
             }
+            // parse our data array
+            for( int i; i < data.size(); i++ ) {
+                if( data[i].size() == 3 ) {
+                    ids << Std.atoi( data[i][0] );
+                    snd_filenames << data[i][1];
+                    orb_filenames << data[i][2];
+                }
+            }
+    
+            // initialize our other bits
+            man.init( snd_filenames, ids );
+            sys.init( orb_filenames, ids, [0.0,500.0], [0.0,500.0], [-100.0,100.0], LIMIT );
         } else {
             // create a new index file
             index.close();
@@ -59,27 +76,15 @@ public class Session {
             index.close();
         }
         
-        // parse our data array
-        for( int i; i < data.size(); i++ ) {
-            if( data[i].size() == 3 ) {
-                ids << Std.atoi( data[0] );
-                snd_filenames << data[1];
-                orb_filenames << data[2];
-            }
-        }
-
-        // initialize our other bits
-        spork ~ man.init( snd_filenames, ids );
-        spork ~ sys.init( orb_filenames, ids, [0,500], [0,500], [-100,100], LIMIT );
 
         NULL @=> snd_filenames;
         NULL @=> orb_filenames;
     }
     
-    fun void write_index() {
+    fun void writeIndex() {
         index.open( index_file, FileIO.WRITE );
-        man.get_filenames() @=> string snd_fns[];
-        sys.get_filenames() @=> string orb_fns[];
+        man.getFilenames() @=> string snd_fns[];
+        sys.getFilenames() @=> string orb_fns[];
         for( int i; i < ids.size(); i ++ ) {
             index <= Std.itoa(ids[i])+":"+snd_fns[i]+":"+orb_fns+":\n";
         }
@@ -88,42 +93,78 @@ public class Session {
 
     fun void quit() {
         man.quit();
+        sys.quit();
         NULL @=> man;
+        NULL @=> sys;
         <<< "session quitting", "" >>>;
         1 => kill;
     }
 
-    fun void record() {
+    fun void create( float x, float y, float z ) {
         <<< "session recording", "" >>>;
-        man.create_sound();
+        OrbUpdater e;
+        generateId() => int id;
+        spork ~ man.create(id, e);
+        sys.create( id, x, y, z, e);
     }
+
+    fun void combine( int id1, int id2 ) {
+        OrbUpdater e;
+        getById( id1 ) => int one_idx;
+        getById( id2 ) => int two_idx;
+        
+        if( id1 < id2 ) {
+            spork ~ man.combine( id1, id1, id2, e );
+            sys.combine( id1, id1, id2, e );
+        } else {
+            spork ~ man.combine( id2, id1, id2, e );
+            sys.combine( id2, id1, id2, e );
+        }
+    }
+
+    fun void loop() {
+        int colls[0][0];
+        (second / 60) => dur framerate;
+
+        while( framerate => now ) {
+            if( command == "record" )
+                create( cur_x, cur_y, cur_z );
+            if( command == "quit" )
+                quit();         
+    
+            sys.update() @=> colls;
+            resolveCollisions( colls ) @=> colls;
+            
+            for( int i; i < colls.size(); i++ ) {
+                combine( colls[i][0], colls[i][1] );
+            }
+        }
+    }          
     
     // will figure the specifics of this with Wolfgang
-    fun void input_listen() {
+    fun void listen() {
         OscIn in;
         OscMsg msg;
         in.port( 57120 );
         in.listenAll();
-            <<< "session listening","" >>>;
+        <<< "session listening","" >>>;
         while( true ) {
             in => now;
             while( in.recv( msg ) ) {
                 <<< msg.address, "received","">>>;
-                if( msg.address == "/record" )
-                    record();
-                if( msg.address == "/quit" )
-                    quit();
-                if( msg.address == "/delete" )
-                    man.delete_sound( msg.getInt(0) );
-                if( msg.address == "/destroy" )
-                    man.destroy_player( msg.getInt(0) );
-                if( msg.address == "/merge" )
-                    man.merge( msg.getInt(0), msg.getInt(0) );
+                if( msg.address == "/session/record" ) {
+                    "record" => command;
+                    msg.getFloat(0) => float cur_x;
+                    msg.getFloat(1) => float cur_y;
+                    msg.getFloat(2) => float cur_z;
+                }
+                if( msg.address == "/session/quit" )
+                    "quit" => command;
             }
         }     
     }
 
-    fun void read_index( string snd_fns[], string orb_fns[] ) {
+    fun void readIndex( string snd_fns[], string orb_fns[] ) {
         string line, fn;
         int comma_idx, colon_idx, start_idx;
         index.open( index_fn, FileIO.READ );
@@ -143,5 +184,48 @@ public class Session {
         } else {
             index.close();
         }
+    }
+
+    fun int getById( int id ) {
+        for( int i; i < ids.size(); i++ ) {
+            if( ids[i] == id )
+                return i;
+        }
+        return -1;
+    }
+
+    fun int generateId() {
+        int max;
+        for( int i; i < ids.size(); i++ ) {
+            if( ids[i] > max )
+                ids[i] => max;
+        }
+        return max + 1;
+    }
+
+    fun int[][] resolveCollisions( int colls[][] ) {
+        int out[0][0];
+        
+        for( int i; i < colls.size(); i++ ) {
+            for( int j; j < colls.size(); j++ ) {
+                if( !isIn( out, colls[i] ) )
+                    out << colls[i];
+            }
+        } 
+
+        return out;
+    }
+
+    fun int isIn( int target[][], int check[] ) {
+        int sum;
+        for( int i; i < target.size(); i++ ) {
+            if( target[i][0] == check[0] || target[i][1] == check[0] )
+                sum++;
+            if( target[i][1] == check[1] || target[i][1] == check[1] )
+                sum++;
+            if( sum == 2 )
+                return 1;
+        }
+        return 0;
     }
 }

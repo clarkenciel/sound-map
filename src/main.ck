@@ -6,8 +6,9 @@ OscOut out;
 out.dest( "localhost", 57121 );
 Session s;
 
-s.init();
-spork ~ s.input_listen();
+s.init( 20 );
+spork ~ s.listen();
+spork ~ s.loop();
 
 while( !s.kill ) ms => now;
 

@@ -2,94 +2,43 @@
 // class that reads a file and plays an IFFT of the file
 // Author: Danny Clarke
 
-public class Sound {
-    IFFT ifft;
-    complex sound[0][0];
-    int samps;
-    int kill;
-    dur rate;
+public class Sound extends Chubgraph {
+    int id;
+    string filename;
+    float samples;
+    dur length;
 
-    fun void read( string fn ) {
-        FileIO f;
-        string line;
-        f.open( fn, FileIO.READ );
-        
-        while( f.more() ) {
-            f.readLine() =>  line;
-            if( line.length() > 0 && line.find( ":" ) >= 0 ) {
-                i_parse( line ) => samps;
-                break;
-            } else if( line.length() > 0 ) {
-                sound.size( sound.size() + 1 );
-                c_parse(line) @=> sound[ sound.size()-1 ];
-            }
-        }
-        f.close();
-        NULL @=> f;
-        if( samps <= 0 )
-            sound.size() => samps;
-
-        (samps / sound.size() )::samp => rate;
-    }
-
-    fun void play( int channel ) {
-        ifft => dac;
-        dac.chan(channel);
-        complex smple[0];
-        int s;
-
-        while( !kill ) {
-            sound[s] @=> smple;
-            ifft.transform( smple );
-            (s+1) % sound.size() => s;
-            rate => now;
-        }
-
-        destroy();
-    }
+    SndBuf s => dac;
     
+    fun void init( string fn, int _id ) {    
+        _id => id;
+        fn => filename;
+        s.read( fn );
+        s.pos( 0 );
+        s.loop( 1 );
+        s.rate( 1 );
+        
+        s.length() => length;
+        s.samples() => samples;
+
+        dac.chan(id);
+    }
+
+    fun void play( StopEvent e ) {
+        while( e.go ) e => now; 
+        s =< dac;
+        NULL @=> s;
+    }
+
     fun void destroy() {
-        ifft =< dac;
-        NULL @=> ifft;
-        NULL @=> sound;
+        FileIO f;
+        f.open( filename, FileIO.WRITE );
+        f <= "";
+        s =< dac;
+        NULL @=> s;
+    }  
+
+    fun SndBuf getSound() {
+        return s;
     }
-
-    // parse a line of a file/sample of sound
-    fun complex[] c_parse( string line ) {
-        "[" => string c_start;
-        "," => string c_mid;
-        "]" => string c_end;
-        int start_idx, end_idx, samps, len, lineNum;
-        float re, im;
-        complex out[0];
-
-        while( line.find( c_end, start_idx ) < line.length() - 1 ) {
-            // get the real component
-            line.find( c_start, end_idx ) + 1 => start_idx;
-            line.find( c_mid, start_idx ) => end_idx;
-            end_idx - start_idx => len;
-            line.substring( start_idx, len ) => Std.atof => re;
-            
-            // get the imaginary component
-            end_idx + 1 => start_idx;
-            line.find( c_end, start_idx ) => end_idx;
-            end_idx - start_idx => len;
-            line.substring( start_idx, len ) => Std.atof => im;
-
-            out.size( out.size() + 1 );
-            #(re, im) @=> out[ out.size() -1 ];
-        } 
-        
-        return out;            
-    }
-
-    // parse the length of the sound
-    fun int i_parse( string line ) {
-        ":" => string samp_delim;
-        line.find( samp_delim ) + 1 => int delim_idx;
-
-        line.substring( delim_idx ) => Std.atoi => int out;
-        return out;
-    }
-        
-}
+} 

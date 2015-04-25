@@ -2,50 +2,96 @@
 // Class that writes a sound's FFT data to file
 // Author: Danny Clarke
 
-public class Recorder {
-    adc => FFT fft => blackhole;
-    UAnaBlob blob;
-    FileIO file;
-    
-    fun void record( string fn, dur length ) {
-        <<< "Creating sound @:", fn,"">>>;
-        int samp_count;
-        // open file
-        file.open( fn, FileIO.WRITE );
-        
-        // set up FFT
-        4 => int WIN => fft.size;
-        length + now => time later;
+public class Recorder extends Chubgraph {
+    fun string record( string fn, dur len, OrbUpdater e ) {
+        string filename;
+        if( fn.find( ".wav" ) >= 0 ) 
+            fn.substring( 0, fn.length() - 4 ) => filename;
+        else
+            fn => filename;
+ 
+        adc => WvOut2 wv => blackhole;
+        wv => FFT fft => blackhole;
+        wv.wavFilename( filename );
 
-        // record
+        512 => fft.size;
+        UAnaBlob blob;
+        
+        float res[4];
+        float avg;
+
+        now + len => time later;
+
+        wv.record(1);
         while( now < later ) {
             fft.upchuck() @=> blob;
-            write_sample( file, blob.cvals() ); 
-            WIN::samp => now;
-            samp_count++;
-        } 
-        file <= ":"+samp_count;
 
-        file.close();
-        // clean up
-        //destroy();
-    }
-
-    // record an array of complex numbers to a filename, fn
-    fun void write_sample( FileIO file, complex a[] ) {
-        int samp_size;
-
-        for( int i; i < a.size(); i++ ) {
-            file <= "[" + a[i].re <= "," + a[i].im <= "]";
+            for( int i; i < blob.cvals().size(); i ++ ) {
+                if( i < 256 * 0.25 )
+                    Math.fabs(blob.cval(i).re) +=> res[0];
+                else if( i > 256 * 0.25 && i < 256 * 0.5 )
+                    Math.fabs(blob.cval(i).re) +=> res[1];
+                else if( i > 256 * 0.5 && i < 256 * 0.75 )
+                    Math.fabs(blob.cval(i).re) +=> res[2];
+                else if( i > 256 * 0.75 )
+                    Math.fabs(blob.cval(i).re) +=> res[3];
+            }
+            second => now;
         }
-        file <= "\n";
-        NULL @=> a;
-    }
-    
-    fun void destroy() {
+        wv.record(0);
+        wv.closeFile();
+
+        for( int i; i < res.size(); i++ ) {
+            res[i] / (256 * 0.25) +=> avg;
+        }
+        4 /=> avg;
+        
+        res @=> e.sig;
+        avg => e.mass;
+        1 => e.good;
+        e.broadcast();        
+        
+        wv =< blackhole;
+        adc =< wv;
         fft =< blackhole;
-        NULL @=> file;
-        NULL @=> fft;
-        NULL @=> blob;
+        wv =< fft;
+
+        NULL @=> wv;
+        NULL @=> fft;  
+        NULL @=> res;
+
+        return filename + ".wav";
+    } 
+
+    fun string merge( string fn, SndBuf s1, SndBuf s2, OrbUpdater e ) {
+        string filename;
+        dur len;
+        if( fn.find( ".wav" ) >= 0 )
+            fn.substring( 0, fn.length() - 4 ) => filename;
+        else
+            fn => filename;
+ 
+        s1 => WvOut2 wv => blackhole;
+        s2 => wv;
+        wv.wavFilename( filename );
+        
+        s1.loop( 1 );
+        s2.loop( 1 );
+
+        if( s1.length() > s2.length() )
+            s1.length() => len;
+        else
+            s2.length() => len;
+        
+        now + len => time later;
+        wv.record( 1 );
+        while( now < later ) second => now;
+        wv.record( 0 ); 
+        wv.closeFile();
+
+        1 => e.good;
+        e.broadcast();
+
+        return filename;
     }
 }

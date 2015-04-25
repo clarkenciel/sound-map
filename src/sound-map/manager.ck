@@ -2,87 +2,69 @@
 // manager class to handle recording, sound creation, and sound destruction
 // Author: Danny Clarke
 
-public class Manager {
-    string filenames[0];
-    FileIO index;
+public class SoundManager {
     Sound players[0];
+    StopEvent stops[0];
     Recorder rec;
 
-    fun string[] get_fns() {
-        return filenames; 
-    }
-    
-    fun void load_sounds() {
+    fun void init( string filenames[], int ids[] ) {
         // loop through the filenames array and read
         //  in soun files
         if( players.size() != filenames.size() )
             players.size( filenames.size() );
+        if( stops.size() != filenames.size() )
+            stops.size( filenames.size() );
 
         for( int i; i < filenames.size(); i ++ ) {
             <<< "player",i,"reading", filenames[i], "" >>>;
             new Sound @=> players[i];
-            players[i].read( filenames[i] );
-            spork ~ players[i].play(0);
-        }
-    }
+            players[i].init( filenames[i], ids[i] );
+            
+            new StopEvent @=> stops[i];
+            ids[i] => stops[i].id;
 
-    fun void add_player( string fn, int chan ) {
-        players.size( players.size() + 1 );
-        new Sound @=> players[ players.size() - 1 ];
-        players[ players.size() - 1 ].read( fn );
-        spork ~ players[ players.size() - 1 ].play(0);
+            spork ~ players[i].play( stops[i] );
+        }
     }
 
     // create sound via recording
-    fun void create_sound() {
-        string old_fn;
-        if( filenames.size() > 0 )
-            filenames[ filenames.size() - 1 ] => old_fn;
-        else
-            "0.000" => old_fn;
-
-        make_fn( old_fn ) => string fn;
-        rec.record( fn, 3::second ); 
-        add_sound( fn, filenames.size() );
-        add_player( fn, filenames.size() );
+    // rewrite of create_sound for refactor
+    fun string create( int id, OrbUpdater e ) {
+        me.dir(2) + "/snds/" + Std.itoa( id ) => string fn;
+        rec.record( fn, 3::second, e ) => fn; 
+        addPlayer( fn, id );
     }
 
-    // create sound via merge, or other non-recording way
-    fun void add_sound( string fn, int idx ) {
-        filenames.size( filenames.size() + 1 );
-        if( idx < filenames.size() - 1 ) {
-            // insert
-            for( filenames.size() - 1 => int i; i > idx; i -- )
-                filenames[i-1] @=> filenames[i];
-            fn @=> filenames[idx];
-        } else fn @=> filenames[ idx ]; // "push"
-        
-        update_index();
+    fun void addPlayer( string fn, int chan ) {
+        players.size( players.size() + 1 );
+        new Sound @=> players[ players.size() - 1 ];
+
+        stops.size( stops.size() + 1 );
+        new StopEvent @=> stops[ stops.size() - 1];
+
+        players[ players.size() - 1 ].init( fn, chan );
+        spork ~ players[ players.size() - 1 ].play( stops[ stops.size() - 1 ] );
     }
 
     // delete a sound entirely
-    fun void delete_sound( int idx ) {
+    fun string[] destroySound( int id ) {
         // stop corresponding player
-        destroy_player(idx); 
-        // remove filenames from index
-        for( idx => int i; i < filenames.size() - 1; i++ ) {
-            filenames[i+1] @=> filenames[i];
-        }
+        destroyPlayer(id); 
+
+        // NULL out the sound file
+        getSound( id ) @=> Sound s;
+        s.destroy();
         
-        // resize filenames array
-        filenames.size( filenames.size() - 1 );
-        
-        // update index file
-        update_index();
+        // give back the filenames
+        return getFilenames();
     }
     
     // delete a single sound player, but not the sound
-    fun void destroy_player( int idx ) {
-        // stop player
-        1 => players[idx].kill;
-        players[idx].rate => now;
-
+    // TODO: rewrite to handle new kill events
+    fun void destroyPlayer( int id ) {
         // remove from player array    
+        getSoundIdx( id ) @=> int idx;
+
         NULL @=> players[idx];
         for( idx => int i; i < players.size() - 1; i++ ) {
             players[i+1] @=> players[i];
@@ -94,77 +76,63 @@ public class Manager {
     }
     
     // delete all of the players, but not the sounds
-    fun void destroy_all() {
+    fun void destroyAllPlayers() {
         for( int i; i < players.size(); i ++ ) {
-            destroy_player( i );
+            destroyPlayer( i );
         }
         NULL @=> players;
     }
-    
-    // TODO: Make this reuse files
-    fun void merge( int idx_one, int idx_two ) {
-        make_fn( filenames[filenames.size() - 1] ) => string fn; 
-        string f1_line, f2_line, f3_line;
-        int coin;
 
-        FileIO file1, file2, dest;
-        file1.open( filenames[idx_one], FileIO.READ );
-        file2.open( filenames[idx_two], FileIO.READ );
-        dest.open( fn, FileIO.WRITE );
-        
-        while( file1.more() && file2.more() ) {
-            file1.readLine() => f1_line;
-            file2.readLine() => f2_line;
-            if( coin )
-                dest <= f1_line;
-            else
-                dest <= f2_line;
-            (coin + 1) % 2 => coin;
+    // destroy all sounds
+    fun string[] destroyAllSounds() {
+        for( int i; i < players.size(); i++ ) {
+            destroySound( players[i].id );
         }
-
-        file1.close();
-        file2.close();
-        dest.close();
-        delete_sound( idx_one );
-        delete_sound( idx_two );
-        add_sound( fn, filenames.size() );
+        return getFilenames();
     }
+    
+    fun string[] combine( int new_id, int id1, int id2, OrbUpdater e ) {
+        me.dir(2) + "/snds/" + Std.itoa( new_id ) => string fn;
+        getSound( id1 ) @=> Sound s1;
+        getSound( id2 ) @=> Sound s2;
 
-    // TODO: fix this to correctly parse/generate file names
-    fun string make_fn( string prv_fn ) {
-        if( prv_fn.length() > 4 ) 
-            prv_fn.substring( prv_fn.length() - 4 ) => prv_fn;
-        <<< "Old filename:", prv_fn, "" >>>;
-        prv_fn => Std.atof => float id;
-        0.001 +=> id;
-        sound_dir + Std.ftoa(id, 3) => string fn;
-        <<< "New filename:", fn,"">>>;
-        return fn;
-    } 
-
-    fun void update_index() {
-        index.open( index_fn, FileIO.WRITE );
-        for( int i; i < filenames.size(); i ++ ) {
-            index <= filenames[i] + ",";
-        }
-        index.close();
-    } 
+        // pass in a new filename and two soundbufs, get back the new filename
+        rec.merge( fn, s1.getSound(), s2.getSound(), e ) => fn;
+        destroySound( id1 );
+        destroySound( id2 ); 
+        
+        return getFilenames();
+    }
 
     // clean up on quit
     fun void quit() {
         <<< "manager quitting", "" >>>;
-        destroy_all();
+        destroyAllPlayers();
         NULL @=> rec;
-        NULL @=> index;    
-        NULL @=> filenames;
+        NULL @=> stops;
     }
 
-    // check if string is in array
-    fun int is_in( string fn, string fns[] ) {
-        for( int i; i < fns.size(); i ++ ) {
-            if( fn == fns[i] )
-                return 1;
+    fun int getSoundIdx( int id ) {
+        for( int i; i < players.size(); i++ ) {
+            if( players[i].id == id )
+                return i;
         }
-        return 0;
-    } 
+        return -1;
+    }
+
+    fun Sound getSound( int id ) {
+        for( int i; i < players.size(); i++ ) {
+            if( players[i].id == id )
+                return players[i];
+        }
+        return NULL;
+    }
+
+    fun string[] getFilenames() {
+        string out[0];
+        for( int i; i < players.size(); i++ ) {
+            out << players[i].filename;
+        }
+        return out; 
+    }
 }
