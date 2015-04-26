@@ -10,6 +10,7 @@ public class OrbSystem {
     float Z_RANGE[2];
     int ORB_LIMIT;
     Orb orbs[0];
+    int collisions[0][0];
 
     //
     // Core functions
@@ -25,21 +26,17 @@ public class OrbSystem {
     
     fun int[][] update() {
         //<<< "os_update", me.id(), "" >>>;
-        int out[0][0];
+        collisions.size(0);
 
         if( orbs.size() > 0 ) {
             for( int j; j < orbs.size(); j ++ ) {
                 gravitate( orbs[j] );
-
-                out.size( out.size() + 1 );
-                new int[0] @=> out[ out.size() - 1 ];
-                collChecks( orbs[j] )  @=> out[ out.size() - 1];
-
+                collChecks( orbs[j] );
                 edgeCheck( orbs[j] );
                 orbs[j].move();
             }
         }
-        return out;
+        return collisions;
     }
 
     // should probably refactor these for vectors since I have them
@@ -67,7 +64,6 @@ public class OrbSystem {
     fun void destroyOrbById( int id ) {
         //<<< "os_destroy_id", me.id(), "" >>>;
         getIdx(id) => int idx; 
-        if( idx == -1 ) id => idx;
         destroyOrbByIdx( idx ); 
     }
 
@@ -83,44 +79,47 @@ public class OrbSystem {
     }
 
     fun Orb generateCombo( int new_id, int id1, int id2 ) {
+        Orb out;
         float x_mean, y_mean, z_mean, m_tot;
         
         getIdx( id1 ) => int one_idx;
-        if( one_idx == -1 ) id1 => one_idx;
         getIdx( id2 ) => int two_idx;
-        if( two_idx == -1 ) id2 => two_idx;
-        <<< "one_idx:",one_idx,id1,"two_idx:",two_idx,id2,"">>>;
-        
+        //<<< "one_idx:",one_idx,id1,"two_idx:",two_idx,id2,"">>>;
+
         (orbs[one_idx].loc.x() + orbs[two_idx].loc.x()) / 2.0 => x_mean; 
         (orbs[one_idx].loc.y() + orbs[two_idx].loc.y()) / 2.0 => y_mean; 
         (orbs[one_idx].loc.z() + orbs[two_idx].loc.z()) / 2.0 => z_mean; 
         orbs[one_idx].m + orbs[two_idx].m => m_tot;
+        //<<< x_mean, y_mean, z_mean, "" >>>;
 
-        Orb out;
         out.init( new_id, m_tot, x_mean, y_mean, z_mean, 0, 0, 0 );
         
         return out;
     }
 
     fun void combine( int new_id, int id1, int id2, OrbUpdater e) {
-        <<< "combining", id1, "&", id2, "into", new_id, "" >>>;
+        //<<< "combining", id1, "&", id2, "into", new_id, "" >>>;
         generateCombo( new_id, id1, id2 ) @=> Orb new_orb;
 
-        <<< "destroying orbs", id1, id2, "" >>>;
+        //<<< "destroying orbs", id1, id2, "" >>>;
         destroyOrbById( id1 );
-        <<< "destroying orbs", id1, id2, "" >>>;
+        //<<< "destroying orbs", id1, id2, "" >>>;
         destroyOrbById( id2 );
 
+        //<<< "adding new orb", "" >>>;
         orbs.size( orbs.size() + 1 );
+        //<<< "!", "">>>;
         new Orb @=> orbs[orbs.size()-1];
+        //<<< "!!", "">>>;
         new_orb @=> orbs[orbs.size()-1];
-        
+        //<<< "!!!", "" >>>; 
         spork ~ updateListen( orbs[orbs.size()-1], e );
     }
 
     fun void quit() {
         for( int i; i < orbs.size();i ++ ) {
-            orbs[i].write();
+            if( orbs[i].good )
+                orbs[i].write();
         }
     }
 
@@ -163,16 +162,17 @@ public class OrbSystem {
         }
     }
 
-    fun int[] collChecks( Orb orb ) {
+    fun void collChecks( Orb orb ) {
         //<<< "os_coll_checks", me.id(), "" >>>;
-        int out[0];
+
         for( int k; k < orbs.size(); k++ ) {
-            if( orbs[k].good && orb.id != orbs[k].id && orb.collCheck( orbs[k] ) ) {
-                out << orbs[k].id; 
+            if( orb.good && orbs[k].good && orb.id != orbs[k].id && orb.collCheck( orbs[k] ) ) {
+                if( !inCollisions( [orb.id, orbs[k].id] ) ) {
+                    collisions.size( collisions.size() + 1 );
+                    [orb.id, orbs[k].id] @=> collisions[ collisions.size() - 1 ];
+                }
             }
         }
-
-        return out;
     }
 
     //
@@ -184,7 +184,8 @@ public class OrbSystem {
         for( int i; i < ids.size(); i++ ) {
             if( getIdx( ids[i] ) >= 0 ) {
                 getOrbById( ids[i] ) @=> o;
-                out << o.filename;
+                if( o.good )
+                    out << o.filename;
             }
         }
         return out;
@@ -281,8 +282,10 @@ public class OrbSystem {
     // Misc. Support
     //
     fun void updateListen( Orb o, OrbUpdater e ) {
+        <<< "waiting for update", "" >>>;
         e => now;
         e.good => o.good;
+        <<< "updating...","" >>>;
         if( e.mass > 0 )
             e.mass * 10000 @=> o.m;
         if( e.sig[0] > 0 )
@@ -295,5 +298,18 @@ public class OrbSystem {
             e.sig[3] @=> o.sig[3];
         0 => e.good;
         e.response.broadcast();
+    }
+
+    fun int inCollisions( int a[] ) {
+        int sum;
+        for( int i; i < collisions.size(); i++ ) {
+            if( a[0] == collisions[i][0] || a[0] == collisions[i][1] )
+                sum ++;
+            if( a[1] == collisions[i][0] || a[1] == collisions[i][1] )
+                sum ++;
+            if( sum == 2 )
+                return 1;
+        }
+        return 0;
     }
 }

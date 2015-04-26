@@ -49,8 +49,8 @@ public class Sound extends Chubgraph {
         FileIO f;
         f.open( filename, FileIO.WRITE );
         f <= "";
+        f.close();
         s =< dac;
-        NULL @=> s;
     }  
 
     fun SndBuf getSound() {

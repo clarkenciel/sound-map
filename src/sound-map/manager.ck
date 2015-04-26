@@ -41,21 +41,23 @@ public class SoundManager {
         players.size( players.size() + 1 );
         new Sound @=> players[ players.size() - 1 ];
 
+        <<< "creating new stop", "" >>>;
         stops.size( stops.size() + 1 );
         new StopEvent @=> stops[ stops.size() - 1];
 
+        <<< "initializing new player", "" >>>;
         players[ players.size() - 1 ].init( fn, chan );
         spork ~ players[ players.size() - 1 ].play( ou, stops[ stops.size() - 1 ] );
     }
 
     // delete a sound entirely
     fun string[] destroySound( int id ) {
-        // stop corresponding player
-        destroyPlayer(id); 
-
         // NULL out the sound file
         getSound( id ) @=> Sound s;
         s.destroy();
+
+        // stop corresponding player
+        destroyPlayer(id); 
         
         // give back the filenames
         return getFilenames();
@@ -68,11 +70,9 @@ public class SoundManager {
         getSoundIdx( id ) @=> int idx;
 
         if( idx >= 0 ) {
-            NULL @=> players[idx];
             for( idx => int i; i < players.size() - 1; i++ ) {
                 players[i+1] @=> players[i];
             }
-            NULL @=> players[ players.size() - 1 ];
         
             // reduce array size
             players.size( players.size() - 1 );
@@ -95,16 +95,19 @@ public class SoundManager {
         return getFilenames();
     }
     
-    fun string[] combine( int new_id, int id1, int id2, OrbUpdater e ) {
-        me.dir(2) + "/snds/" + Std.itoa( new_id ) => string fn;
+    fun string[] combine( int new_id, int id1, int id2, string fn, OrbUpdater e ) {
+        <<< "getting sound", id1, "" >>>;
         getSound( id1 ) @=> Sound s1;
+        <<< "getting sound", id2, "" >>>;
         getSound( id2 ) @=> Sound s2;
 
         // pass in a new filename and two soundbufs, get back the new filename
         rec.merge( fn, s1.getSound(), s2.getSound(), e ) => fn;
+        <<< "destroying sound:", id1, "" >>>;
         destroySound( id1 );
+        <<< "destroying sound:", id2, "" >>>;
         destroySound( id2 ); 
-        
+        <<< "!!", "" >>>; 
         return getFilenames();
     }
 

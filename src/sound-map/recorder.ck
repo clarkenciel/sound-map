@@ -67,13 +67,17 @@ public class Recorder extends Chubgraph {
     fun string merge( string fn, SndBuf s1, SndBuf s2, OrbUpdater e ) {
         string filename;
         dur len;
+        <<< "checking filename","" >>>;
         if( fn.find( ".wav" ) >= 0 )
             fn.substring( 0, fn.length() - 4 ) => filename;
         else
             fn => filename;
  
+        <<< "setting up recorder", "" >>>;
         s1 => WvOut2 wv => blackhole;
+        <<< "!", "" >>>;
         s2 => wv;
+        <<< "!", "" >>>;
         wv.wavFilename( filename );
         
         s1.loop( 1 );
@@ -86,13 +90,18 @@ public class Recorder extends Chubgraph {
         
         now + len => time later;
         wv.record( 1 );
+        <<< "recording", "" >>>;
         while( now < later ) second => now;
         wv.record( 0 ); 
         wv.closeFile();
 
+        len => now;
+
         1 => e.good;
         e.broadcast();
+        <<< "waiting for response", "" >>>;
+        e.response => now;
 
-        return filename;
+        return fn;
     }
 }

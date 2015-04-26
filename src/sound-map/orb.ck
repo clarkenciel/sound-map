@@ -67,7 +67,6 @@ public class Orb {
     fun int collCheck( Orb o ) {
         //<<< "orb_coll_check", me.id(), "" >>>;
         if( loc.dist( o.loc ) < o.m + m ) {
-            <<< "collision!","">>>;
             return 1;
         } else
             return 0;         
