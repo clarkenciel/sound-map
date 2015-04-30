@@ -2,7 +2,8 @@
 // handle the user interactions with the manager and the "orbital system"
 // Author: Danny Clarke
 
-public class Session {
+public class Session
+{
     me.dir(2) + "index.txt" => string index_file;
 
     FileIO index;
@@ -24,12 +25,16 @@ public class Session {
     home + "data/" => string data_dir;
     string command;
 
-    // load up our manager and start playing existing sounds
-    // Rewrite to read the index and get information about:
-    //      sound files
-    //      orb data files
-    //      then, store array of object ids
-    fun void init( int lim ) {
+
+    // ----------------------------FILE FUNCTIONS------------------------------
+    /*
+    * init
+    * initialize a session with a limit to the number of possible orbs/sounds
+    * if an index file exists, parse it and initialize our sound manager and orb system
+    * if an index file doesn't exist, create a blank one.
+    */
+    fun void init( int lim ) 
+    {
         <<< "initializing and starting session","" >>>;
         string snd_filenames[0];
         string orb_filenames[0];
@@ -90,7 +95,12 @@ public class Session {
         NULL @=> orb_filenames;
     }
     
-    fun void writeIndex() {
+    /*
+    * writeIndex
+    * write update our index file with the current system state
+    */
+    fun void writeIndex()
+    {
         string output;
         ids.size() => int len;
         index.open( index_file, FileIO.WRITE );
@@ -118,7 +128,12 @@ public class Session {
         index.close(); 
     }
 
-    fun void quit() {
+    /*
+    * quit
+    * write to index and exit
+    */
+    fun void quit()
+    {
         writeIndex();
         man.quit();
         sys.quit();
@@ -127,7 +142,14 @@ public class Session {
         "" => command;
     }
 
-    fun void create( float x, float y, float z ) {
+    // --------------------------SYSTEM MANAGEMENT------------------------------
+    /*
+    * create
+    * create a new sound and object at a given location
+    * this location is given by the "/session/rec" osc message
+    */
+    fun void create( float x, float y, float z ) 
+    {
         <<< "session recording", "" >>>;
         OrbUpdater e;
         generateId() => int id;
@@ -137,7 +159,13 @@ public class Session {
         "" => command;
     }
 
-    fun void combine( int id1, int id2 ) {
+    /*
+    * combine
+    * combine two objects and mix-down two sounds
+    * this is called for each collision pair returned by OrbSystem.update()
+    */
+    fun void combine( int id1, int id2 )
+    {
         OrbUpdater e;
         getIdxById( id1 ) => int one_idx;
         getIdxById( id2 ) => int two_idx;
@@ -160,7 +188,13 @@ public class Session {
         }
     }
 
-    fun void loop() {
+    /*
+    * loop
+    * continually updates the orb system and writes to file
+    * analagous to a Processing void draw() loop
+    */
+    fun void loop()
+    {
         while( framerate => now ) {
             writeIndex();
             if( command == "record" )
@@ -181,8 +215,12 @@ public class Session {
         }
     }          
 
-    // will figure the specifics of this with Wolfgang
-    fun void listen() {
+    /*
+    * listen
+    * continually listens for record and quit messages from Wolfgang's app
+    */
+    fun void listen()
+    {
         OscIn in;
         OscMsg msg;
         in.port( 57120 );
@@ -204,7 +242,15 @@ public class Session {
         }     
     }
 
-    fun void readIndex( string snd_fns[], string orb_fns[] ) {
+    // ----------------------------SUPPORT-----------------------
+    /*
+    * readIndex
+    * reads the index.txt file from the home directory 
+    * adds filenames to arrays used by the soundfile and orb systems for
+    * object generation
+    */
+    fun void readIndex( string snd_fns[], string orb_fns[] )
+    {
         string line, fn;
         int comma_idx, colon_idx, start_idx;
         index.open( index_fn, FileIO.READ );
@@ -226,7 +272,12 @@ public class Session {
         }
     }
 
-    fun void send( Orb orbs[] ) {
+    /*
+    * send
+    * sends information about an orb's position out to the main app
+    */
+    fun void send( Orb orbs[] )
+    {
         OscOut out;
         out.dest( "localhost", 57121 );
 
@@ -239,7 +290,12 @@ public class Session {
         }
     }
 
-    fun int getIdxById( int id ) {
+    /*
+    * getIdxById
+    * returns an index for an object
+    */
+    fun int getIdxById( int id )
+    {
         for( int i; i < ids.size(); i++ ) {
             if( ids[i] == id )
                 return i;
@@ -247,7 +303,12 @@ public class Session {
         return -1;
     }
 
-    fun int generateId() {
+    /*
+    * generateId
+    * generates a new id for an orb/sound file
+    */
+    fun int generateId()
+    {
         int max;
         for( int i; i < ids.size(); i++ ) {
             if( ids[i] > max )
@@ -258,6 +319,11 @@ public class Session {
         return max + 1;
     }
 
+    /*
+    * removeId
+    * removes an ID from the session's ID array
+    * this is used in the case of object destruction
+    */
     fun void removeId( int id ) {
         getIdxById( id ) => int idx;
         if( idx >= 0 ) {
@@ -267,37 +333,5 @@ public class Session {
             ids.size( ids.size() - 1 );
         }
     } 
-
-    /* 
-    fun int[][] resolveCollisions( int colls[][] ) {
-        int out[0][0];
-        
-        for( int i; i < colls.size(); i++ ) {
-            if( colls.size() > 0 ) {
-                for( int j; j < colls[i].size(); j++ ) {
-                    <<< colls[i][j], "" >>>;
-                    if( !isIn( out, [i,colls[i][j]] ) ) {
-                        out.size( out.size() + 1 );
-                        new int[0] @=> out[out.size()-1];
-                        [i, colls[i][j]] @=> out[out.size()-1];
-                    }
-                }
-            }
-        } 
-
-        return out;
-    }*/
-
-    fun int isIn( int target[][], int check[] ) {
-        int sum;
-        for( int i; i < target.size(); i++ ) {
-            if( target[i][0] == check[0] || target[i][1] == check[0] )
-                sum++;
-            if( target[i][1] == check[1] || target[i][1] == check[1] )
-                sum++;
-            if( sum == 2 )
-                return 1;
-        }
-        return 0;
-    }
 }
+

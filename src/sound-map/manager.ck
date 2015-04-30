@@ -2,14 +2,20 @@
 // manager class to handle recording, sound creation, and sound destruction
 // Author: Danny Clarke
 
-public class SoundManager {
+public class SoundManager
+{
     Sound players[0];
     StopEvent stops[0];
     Recorder rec;
 
-    fun void init( string filenames[], int ids[] ) {
-        // loop through the filenames array and read
-        //  in soun files
+    // ---------------------CORE FUNCTIONS --------------------
+    /*
+    * init( filename_array, id_array )
+    * create new players using the info stored in the files
+    * specified by filenames[] and the ids stored in ids[]
+    */
+    fun void init( string filenames[], int ids[] ) 
+    {
         if( players.size() != filenames.size() )
             players.size( filenames.size() );
         if( stops.size() != filenames.size() )
@@ -27,15 +33,39 @@ public class SoundManager {
         }
     }
 
-    // create sound via recording
-    // rewrite of create_sound for refactor
-    fun string create( int id, OrbUpdater e ) {
-        me.dir(2) + "snds/" + Std.itoa( id ) => string fn;
-        rec.record( fn, 3::second, e ) => fn; 
-        //addPlayer( fn, id );
+    /*
+    * quit()
+    * destroy all of the players and do a bit of cleanup
+    */
+    fun void quit()
+    {
+        <<< "manager quitting", "" >>>;
+        destroyAllPlayers();
+        NULL @=> rec;
+        NULL @=> stops;
     }
 
-    fun void addPlayer( string fn, int chan, OrbUpdater ou ) {
+    /*
+    * create( id, update_event )
+    * create a new sound with the specified id
+    * after recording, send a message to the OrbSystem's sporked-off
+    * updateListen() function to let it know that the corresponding orb
+    * is good to go
+    */
+    fun string create( int id, OrbUpdater e )
+    {
+        me.dir(2) + "snds/" + Std.itoa( id ) => string fn;
+        rec.record( fn, 3::second, e ) => fn; 
+    }
+
+    /*
+    * addPlayer( filename, channel, updater event )
+    * add a new player to the array
+    * that player's play thread is made to wait until
+    * the recording is finished
+    */
+    fun void addPlayer( string fn, int chan, OrbUpdater ou )
+    {
         <<< "Adding player for:",fn,"on channel",chan,"">>>;
 
         players.size( players.size() + 1 );
@@ -50,8 +80,15 @@ public class SoundManager {
         spork ~ players[ players.size() - 1 ].play( ou, stops[ stops.size() - 1 ] );
     }
 
-    // delete a sound entirely
-    fun string[] destroySound( int id ) {
+    // -----------------------SUPPORT--------------------
+
+    /*
+    * destroySound( id )
+    * destroy a sound specified by the id and return
+    * an updated version of the currently-played sound files
+    */
+    fun string[] destroySound( int id )
+    {
         // NULL out the sound file
         getSound( id ) @=> Sound s;
         s.destroy();
@@ -63,9 +100,24 @@ public class SoundManager {
         return getFilenames();
     }
     
-    // delete a single sound player, but not the sound
-    // TODO: rewrite to handle new kill events
-    fun void destroyPlayer( int id ) {
+    /*
+    * destroyAllSounds()
+    * destroy all of the sounds themselves
+    */
+    fun string[] destroyAllSounds() {
+        for( int i; i < players.size(); i++ ) {
+            destroySound( players[i].id );
+        }
+        return getFilenames();
+    }
+
+    /*
+    * destroyPlayer( id )
+    * destroy just the player, but not the sound
+    * specified by id
+    */
+    fun void destroyPlayer( int id )
+    {
         // remove from player array    
         getSoundIdx( id ) @=> int idx;
 
@@ -79,23 +131,27 @@ public class SoundManager {
         }
     }
     
-    // delete all of the players, but not the sounds
-    fun void destroyAllPlayers() {
+    /*
+    * destroyAllPlayers()
+    * see above func, but applied to everything
+    */
+    fun void destroyAllPlayers()
+    {
         for( int i; i < players.size(); i ++ ) {
             destroyPlayer( i );
         }
         NULL @=> players;
     }
 
-    // destroy all sounds
-    fun string[] destroyAllSounds() {
-        for( int i; i < players.size(); i++ ) {
-            destroySound( players[i].id );
-        }
-        return getFilenames();
-    }
-    
-    fun string[] combine( int new_id, int id1, int id2, string fn, OrbUpdater e ) {
+    /*
+    * combine( new_sound_id, old_id1, old_id2, new_filename, update_event
+    * record a new sound to the specified filename.
+    * this sound is a mix-down of the older sounds.
+    * an updater event is included to alert the OrbSystem that the corresponding orb
+    * is good to go
+    */
+    fun string[] combine( int new_id, int id1, int id2, string fn, OrbUpdater e ) 
+    {
         <<< "getting sound", id1, "" >>>;
         getSound( id1 ) @=> Sound s1;
         <<< "getting sound", id2, "" >>>;
@@ -111,15 +167,12 @@ public class SoundManager {
         return getFilenames();
     }
 
-    // clean up on quit
-    fun void quit() {
-        <<< "manager quitting", "" >>>;
-        destroyAllPlayers();
-        NULL @=> rec;
-        NULL @=> stops;
-    }
-
-    fun int getSoundIdx( int id ) {
+    /* 
+    * getSoundIdx( id )
+    * get the index of a sound in the players array using the id
+    */
+    fun int getSoundIdx( int id )
+    {
         for( int i; i < players.size(); i++ ) {
             if( players[i].id == id )
                 return i;
@@ -127,6 +180,10 @@ public class SoundManager {
         return -1;
     }
 
+    /*
+    * getSound( id )
+    * get a sound from the players array using an id
+    */
     fun Sound getSound( int id ) {
         for( int i; i < players.size(); i++ ) {
             if( players[i].id == id )
@@ -135,6 +192,10 @@ public class SoundManager {
         return NULL;
     }
 
+    /*
+    * getFilenames()
+    * return the filenames of the currently-active sounds
+    */
     fun string[] getFilenames() {
         string out[0];
         for( int i; i < players.size(); i++ ) {
@@ -143,6 +204,11 @@ public class SoundManager {
         return out; 
     }
 
+    /*
+    * getFilenames( id_array )
+    * get the filenames of the ids specified in the ids_array if they
+    * are currently active
+    */
     fun string[] getFilenames( int ids[] ) {
         string out[0];
         for( int i; i < ids.size(); i++ ) {
@@ -153,5 +219,5 @@ public class SoundManager {
         }
         return out; 
     }
-
 }
+

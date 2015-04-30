@@ -3,7 +3,8 @@
 // test code can be found in the test folder
 // Author: Danny Clarke
 
-public class OrbSystem {
+public class OrbSystem 
+{
     string filenames[0];
     float X_RANGE[2];
     float Y_RANGE[2];
@@ -12,10 +13,13 @@ public class OrbSystem {
     Orb orbs[0];
     int collisions[0][0];
 
-    //
-    // Core functions
-    //
-    fun void init( string fns[], int ids[] ) {
+    // --------------------------Core functions-----------------
+    /*
+    * init( filename_array, id_array )
+    * generate a orbs using the filenames and ids passed in
+    */
+    fun void init( string fns[], int ids[] )
+    {
         //<<< "os_init", me.id(), "" >>>;
         fns @=> filenames;
 
@@ -24,7 +28,13 @@ public class OrbSystem {
         }
     }
     
-    fun int[][] update() {
+    /*
+    * update()
+    * update the states of all the orbs a la a Processing collision system
+    * return an array of "tuples" containing the ides of orbs that collided
+    */
+    fun int[][] update()
+    {
         //<<< "os_update", me.id(), "" >>>;
         collisions.size(0);
 
@@ -39,8 +49,13 @@ public class OrbSystem {
         return collisions;
     }
 
-    // should probably refactor these for vectors since I have them
-    fun int createFromFile( int id, float m, float x, float y, float z, float xvel, float yvel, float zvel ) {
+    // ------------------------ Support Functions ---------------
+    /*
+    * createFromFile( a_bunch_of_info )
+    * creates a new orb from the data parsed in a file
+    */
+    fun int createFromFile( int id, float m, float x, float y, float z, float xvel, float yvel, float zvel )
+    {
         if( orbs.size() + 1 <= ORB_LIMIT ) {
             orbs.size( orbs.size() + 1 );
             new Orb @=> orbs[ orbs.size() - 1 ];
@@ -50,8 +65,17 @@ public class OrbSystem {
         return -1;
     }
 
-    // same here
-    fun void create( int id, float x, float y, float z, OrbUpdater e ) {
+    /*
+    * create( a_bunch_of_info )
+    * creates a new orb from some data
+    * usually used when creating an orb via recording or from collision
+    * since we can create orbs faster than we can record, it takes an event
+    * that is also passed to the recorder.
+    * Upon completion of recording the info re: mass is passed into the orb
+    * and the orb is made available to the system for updating
+    */
+    fun void create( int id, float x, float y, float z, OrbUpdater e )
+    {
         //<<< "os_create", me.id(), "" >>>;
         if( orbs.size() + 1 <= ORB_LIMIT ) {
             orbs.size( orbs.size() + 1 );
@@ -61,24 +85,12 @@ public class OrbSystem {
         }
     }
 
-    fun void destroyOrbById( int id ) {
-        //<<< "os_destroy_id", me.id(), "" >>>;
-        getIdx(id) => int idx; 
-        destroyOrbByIdx( idx ); 
-    }
-
-    fun void destroyOrbByIdx( int idx ) {
-        //<<< "os_destroy_idx", me.id(), "" >>>;
-        if( idx >= 0 ) {
-            orbs[idx].destroy();
-            for( idx => int i; i < orbs.size()-1; i++ ) {
-                orbs[i+1] @=> orbs[i];
-            }
-            orbs.size( orbs.size() - 1 );
-        }
-    }
-
-    fun Orb generateCombo( int new_id, int id1, int id2 ) {
+    /*
+    * generateCombo( new_orbs_id, old_orb_1, old_orb_2 )
+    * generate an orb that is a combination of two other orbs
+    */
+    fun Orb generateCombo( int new_id, int id1, int id2 )
+    {
         Orb out;
         float x_mean, y_mean, z_mean, m_tot;
         
@@ -97,7 +109,12 @@ public class OrbSystem {
         return out;
     }
 
-    fun void combine( int new_id, int id1, int id2, OrbUpdater e) {
+    /*
+    * combine( new_orb_id, old_orb_1, old_orb_2, update_event )
+    * generate a new orb from two old ones and spork off an update listener
+    */
+    fun void combine( int new_id, int id1, int id2, OrbUpdater e)
+    {
         //<<< "combining", id1, "&", id2, "into", new_id, "" >>>;
         generateCombo( new_id, id1, id2 ) @=> Orb new_orb;
 
@@ -116,25 +133,40 @@ public class OrbSystem {
         spork ~ updateListen( orbs[orbs.size()-1], e );
     }
 
-    fun void quit() {
+    /*
+    * quit()
+    * have all the active orbs write themselves to file
+    */
+    fun void quit()
+    {
         for( int i; i < orbs.size();i ++ ) {
             if( orbs[i].good )
                 orbs[i].write();
         }
     }
 
-    //
-    // MOTION
-    //  
+    // --------------------MOTION-----------------------------
 
-    fun void gravitate( Orb orb ) {
+    /*
+    * gravitate( an_orb )
+    * update the accelleration of an orb 
+    * according to its mass and the mass of the other orbs in the system
+    * using a very simple gravitational pull model
+    */
+    fun void gravitate( Orb orb )
+    {
         for( int i; i < orbs.size(); i++ ) {
             if( orbs[i].good && orb.id != orbs[i].id ) 
                 orb.gravitate( orbs[i] );
         }
     }
 
-    fun void edgeCheck( Orb orb ) {
+    /*
+    * edgeCheck( orb )
+    * check whether an orb has collided with an edge
+    */
+    fun void edgeCheck( Orb orb ) 
+    {
         //<<< "os_edge_check", me.id(), "" >>>;
         if( orb.loc.x() <= X_RANGE[0] + orb.m ) {
             orb.vel.setX( orb.vel.x() * -0.9 );
@@ -162,7 +194,12 @@ public class OrbSystem {
         }
     }
 
-    fun void collChecks( Orb orb ) {
+    /*
+    * collchecks( an_orb )
+    * check if an orb has collided with other orbs
+    */
+    fun void collChecks( Orb orb )
+    {
         //<<< "os_coll_checks", me.id(), "" >>>;
 
         for( int k; k < orbs.size(); k++ ) {
@@ -175,10 +212,13 @@ public class OrbSystem {
         }
     }
 
-    //
-    // File management
-    //
-    fun string[] getFilenames( int ids[] ) {
+    // -----------------------------------File management--------------------------
+    /*
+    * getFilenames( id_array )
+    * return the filenames of the orbs specified by the id array
+    */
+    fun string[] getFilenames( int ids[] )
+    {
         string out[0];
         Orb o;
         for( int i; i < ids.size(); i++ ) {
@@ -191,7 +231,13 @@ public class OrbSystem {
         return out;
     }
 
-    fun void parse( int id, string filename ) {
+    /*
+    * parse( id, filename )
+    * parses a file specified by filename and creates an orb object
+    * using the id and the info in the file
+    */
+    fun void parse( int id, string filename )
+    {
         FileIO f;
         f.open( filename, FileIO.READ );
         if( f.good() && f.size() > 0 ) {
@@ -231,10 +277,13 @@ public class OrbSystem {
         f.close();
     }
 
-    //
     // Orb fetching
-    //
-    fun int getIdx( int id ) {
+    /*
+    * getIdx( id )
+    * gets the index of an orb using an id
+    */
+    fun int getIdx( int id )
+    {
         for( int i; i < orbs.size(); i++ ) {
             if( orbs[i].id == id )
                 return i;
@@ -242,15 +291,21 @@ public class OrbSystem {
         return -1;
     }
 
-    fun int getIdx( Orb o ) {
-        for( int i; i < orbs.size(); i++ ) {
-            if( orbs[i].id == o.id )
-                return i;
-        }
-        return -1;
+    /*
+    * getIdx( orb )
+    * similar to above, but using an orb itself
+    */
+    fun int getIdx( Orb o )
+    {
+        return getIdx( o.id );
     }
 
-    fun Orb getOrbById( int id ) {
+    /*
+    * getOrbById( id )
+    * gets an orb using an id
+    */
+    fun Orb getOrbById( int id )
+    {
         for( int i; i < orbs.size(); i++ ) {
             if( orbs[i].id == id )
                 return orbs[i];
@@ -258,16 +313,12 @@ public class OrbSystem {
         return NULL;
     }
 
-    fun Orb getOrbByIdx( int id ) { 
-        //<<< "os_get_idx", me.id(), "" >>>;
-        for( int i; i < orbs.size(); i ++ ) {
-            if( orbs[i].id == id )
-                return orbs[i];
-        }
-        return NULL;
-    }
-
-    fun Orb[] getOrbs() {
+    /*
+    * getOrbs()
+    * returns the currently active orbs
+    */
+    fun Orb[] getOrbs() 
+    {
         Orb out[0];
         for( int i; i < orbs.size(); i++ ) {
             if( orbs[i].good ) {
@@ -278,10 +329,41 @@ public class OrbSystem {
         return out;
     }
 
-    //
-    // Misc. Support
-    //
-    fun void updateListen( Orb o, OrbUpdater e ) {
+    /*
+    * destroyOrbById( an_id )
+    * takes in an id, finds the orb in the array, and kills it
+    */
+    fun void destroyOrbById( int id )
+    {
+        //<<< "os_destroy_id", me.id(), "" >>>;
+        getIdx(id) => int idx; 
+        destroyOrbByIdx( idx ); 
+    }
+
+    /*
+    * destroyOrbByidx( index )
+    * similar to above, but uses an index
+    */
+    fun void destroyOrbByIdx( int idx )
+    {
+        //<<< "os_destroy_idx", me.id(), "" >>>;
+        if( idx >= 0 ) {
+            orbs[idx].destroy();
+            for( idx => int i; i < orbs.size()-1; i++ ) {
+                orbs[i+1] @=> orbs[i];
+            }
+            orbs.size( orbs.size() - 1 );
+        }
+    }
+
+    // ----------------------------------Misc. Support-------------------------
+    /*
+    * updateListen( orb, update_event )
+    * sporked off when we create an orb
+    * waits for messages from the recording to finish initializing the orb
+    */
+    fun void updateListen( Orb o, OrbUpdater e )
+    {
         <<< "waiting for update", "" >>>;
         e => now;
         e.good => o.good;
@@ -300,7 +382,13 @@ public class OrbSystem {
         e.response.broadcast();
     }
 
-    fun int inCollisions( int a[] ) {
+    /*
+    * inCollisions( tuple_of_orb_ids )
+    * checks whether a collision pair has already been added to the 2D array
+    * returned by update()
+    */
+    fun int inCollisions( int a[] )
+    {
         int sum;
         for( int i; i < collisions.size(); i++ ) {
             if( a[0] == collisions[i][0] || a[0] == collisions[i][1] )
@@ -313,3 +401,4 @@ public class OrbSystem {
         return 0;
     }
 }
+
