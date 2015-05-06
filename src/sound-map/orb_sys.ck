@@ -78,10 +78,23 @@ public class OrbSystem
     {
         //<<< "os_create", me.id(), "" >>>;
         if( orbs.size() + 1 <= ORB_LIMIT ) {
-            orbs.size( orbs.size() + 1 );
-            new Orb @=> orbs[ orbs.size() - 1 ];
-            orbs[ orbs.size() - 1 ].init( id, 0, x, y, z, 0.0, 0.0, 0.0 );
-            spork ~ updateListen( orbs[ orbs.size() - 1 ], e );
+            OscOut out;
+            out.dest("localhost", 57121);
+            orbs.size() => int start_size;
+            start_size + 1 => int goal_size;
+
+            orbs.size(goal_size);
+            new Orb @=> orbs[start_size];
+            orbs[start_size].init( id, 0, x, y, z, 0.0, 0.0, 0.0 );
+
+            out.start("/orb/create");
+            orb.add(orb.id);
+            orb.add(orbs[start_size].loc.x());
+            orb.add(orbs[start_size].loc.y());
+            orb.add(orbs[start_size].loc.z());
+            out.send();
+
+            spork ~ updateListen( orbs[start_size], e );
         }
     }
 
@@ -364,8 +377,6 @@ public class OrbSystem
     */
     fun void updateListen( Orb o, OrbUpdater e )
     {
-        OscOut out;
-        out.dest("localhost", 57121);
         <<< "waiting for update", "" >>>;
         e => now;
         e.good => o.good;
@@ -381,8 +392,6 @@ public class OrbSystem
         if( e.sig[3] > o.sig[3] )
             e.sig[3] @=> o.sig[3];
         0 => e.good;
-        out.start("/orb/create");
-        out.add(o.m).add(o.loc.x()).add(o.loc.y()).add(o.loc.z()).send();
         e.response.broadcast();
     }
 
