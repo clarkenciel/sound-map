@@ -2,7 +2,8 @@
 // class that reads a file and plays an IFFT of the file
 // Author: Danny Clarke
 
-public class Sound extends Chubgraph {
+public class Sound extends Chubgraph
+{
     int id;
     string filename;
     float samples;
@@ -10,14 +11,16 @@ public class Sound extends Chubgraph {
 
     SndBuf s => dac;
     
-    fun void init( string fn, int _id ) {    
+    fun void init( string fn, int _id )
+    {
         _id => id;
         fn => filename;
 
         dac.chan(id);
     }
 
-    fun void play( OrbUpdater ou, StopEvent e ) {
+    fun void play( OrbUpdater ou, StopEvent e )
+    {
         ou => now;
         s.read( filename ); 
         s.pos( 0 );
@@ -32,7 +35,8 @@ public class Sound extends Chubgraph {
         NULL @=> s;
     }
 
-    fun void play( StopEvent e ) {
+    fun void play( StopEvent e )
+    {
         s.read( filename ); 
         s.pos( 0 );
         s.loop( 1 );
@@ -45,7 +49,9 @@ public class Sound extends Chubgraph {
         s =< dac;
         NULL @=> s;
     }
-    fun void destroy() {
+
+    fun void destroy()
+    {
         FileIO f;
         f.open( filename, FileIO.WRITE );
         f <= "";
@@ -53,7 +59,8 @@ public class Sound extends Chubgraph {
         s =< dac;
     }  
 
-    fun SndBuf getSound() {
+    fun SndBuf getSound()
+    {
         return s;
     }
 } 

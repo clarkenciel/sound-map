@@ -203,12 +203,9 @@ public class Session
                 quit();         
     
             sys.update() @=> colls;
-            //<<< "resolving collisions", "" >>>;
-            //resolveCollisions( colls ) @=> colls;
             
-            for( int i; i < colls.size(); i++ ) {
+            for( int i; i < colls.size(); i++ )
                 combine( colls[i][0], colls[i][1] );
-            }
 
             sys.getOrbs() @=> orbs;
             send( orbs );

@@ -66,9 +66,9 @@ public class Orb {
     // return true or false if the distance from a vector < mass 
     fun int collCheck( Orb o ) {
         //<<< "orb_coll_check", me.id(), "" >>>;
-        if( loc.dist( o.loc ) < o.m + m ) {
+        if( loc.dist( o.loc ) < o.m + m )
             return 1;
-        } else
+        else
             return 0;         
     }
 
