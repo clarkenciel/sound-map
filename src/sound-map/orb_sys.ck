@@ -364,6 +364,8 @@ public class OrbSystem
     */
     fun void updateListen( Orb o, OrbUpdater e )
     {
+        OscOut out;
+        out.dest("localhost", 57121);
         <<< "waiting for update", "" >>>;
         e => now;
         e.good => o.good;
@@ -379,6 +381,8 @@ public class OrbSystem
         if( e.sig[3] > o.sig[3] )
             e.sig[3] @=> o.sig[3];
         0 => e.good;
+        out.start("/orb/create");
+        out.add(o.m).add(o.loc.x()).add(o.loc.y()).add(o.loc.z()).send();
         e.response.broadcast();
     }
 
