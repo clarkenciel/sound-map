@@ -166,19 +166,27 @@ public class Session
     */
     fun void combine( int id1, int id2 )
     {
+        OscOut out;
+        out.dest("localhost", 57121);
+        out.start("/orb/dest").add(id1).add(id2).send();
+
         OrbUpdater e;
         getIdxById( id1 ) => int one_idx;
         getIdxById( id2 ) => int two_idx;
+        int new_id;
+        string fn;
         if( one_idx >= 0 && two_idx >= 0 ) {
-            generateId() => int new_id;
-            me.dir(2) + "snds/" + Std.itoa( new_id ) + ".wav" => string fn;
             
             <<< "combining", id1, id2, "" >>>;
             if( id1 < id2 ) {
+                id1 => new_id;
+                me.dir(2) + "snds/" + Std.itoa( new_id ) + ".wav" => fn;
                 spork ~ man.combine( new_id, id1, id2, fn, e );
                 man.addPlayer( fn, new_id, e );
                 sys.combine( new_id, id1, id2, e );
             } else {
+                id2 => new_id;
+                me.dir(2) + "snds/" + Std.itoa( new_id ) + ".wav" => fn;
                 spork ~ man.combine( new_id, id1, id2, fn, e );
                 man.addPlayer( fn, new_id, e );
                 sys.combine( new_id, id1, id2, e );
